@@ -1,0 +1,528 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon.png" type="image/png">
+<meta name="theme-color" content="#35573c">
+<meta name="description" content="Real-time Mandelbrot &amp; Julia set explorer — a personal programming project by Noah Schiff.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Fractal Explorer — Noah Schiff">
+<meta property="og:description" content="Real-time Mandelbrot &amp; Julia set explorer, built with vanilla JavaScript and Canvas.">
+<meta property="og:url" content="https://noahmschiff.com/fractal-explorer.html">
+<title>Fractal Explorer — Noah Schiff</title>
+<style>
+  :root {
+    --paper:   #efe7d3;
+    --paper-2: #e6dcc2;
+    --ink:     #232b21;
+    --ink-2:   #4a4939;
+    --muted:   #726b57;
+    --line:    #d3c7a4;
+    --forest:  #35573c;
+    --forest-2:#284530;
+    --contour: #9c7040;
+    --water:   #2f6a85;
+    --shadow:  0 1px 2px rgba(35,43,33,.06), 0 10px 30px rgba(35,43,33,.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:   #171b15;
+      --paper-2: #1e231b;
+      --ink:     #e9e2c9;
+      --ink-2:   #c9c2a8;
+      --muted:   #9b9480;
+      --line:    #333a2c;
+      --forest:  #7bab7e;
+      --forest-2:#8fc192;
+      --contour: #c99a65;
+      --water:   #6fabc4;
+      --shadow:  0 1px 2px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:   #171b15;
+    --paper-2: #1e231b;
+    --ink:     #e9e2c9;
+    --ink-2:   #c9c2a8;
+    --muted:   #9b9480;
+    --line:    #333a2c;
+    --forest:  #7bab7e;
+    --forest-2:#8fc192;
+    --contour: #c99a65;
+    --water:   #6fabc4;
+    --shadow:  0 1px 2px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.4);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  a { color: inherit; }
+  .mono {
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .topbar {
+    flex: none;
+    z-index: 20;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--forest);
+  }
+  .back svg { width: 14px; height: 14px; }
+  .topbar h1 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .topbar .sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 2px 0 0;
+  }
+
+  .stage {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    background: #04060a;
+  }
+  #fractal {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+  }
+  #fractal.dragging { cursor: grabbing; }
+
+  .card {
+    background: color-mix(in srgb, var(--paper) 82%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+  }
+
+  .hud {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.7;
+    min-width: 200px;
+  }
+  .hud .eyebrow {
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--contour);
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  .hud .row span:first-child { color: var(--muted); display: inline-block; width: 78px; }
+
+  .help {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    padding: 10px 14px;
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  @media (max-width: 640px) {
+    .help { display: none; }
+  }
+
+  .toolbar {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--paper-2);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: border-color .15s, color .15s, transform .15s;
+    font-family: inherit;
+  }
+  .chip:hover { border-color: var(--forest); color: var(--forest); transform: translateY(-1px); }
+  .chip svg { width: 14px; height: 14px; flex: none; }
+
+  .toast {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    padding: 9px 14px;
+    font-size: 12.5px;
+    color: var(--forest);
+    font-weight: 600;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="back" href="/#work">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Noah Schiff
+    </a>
+    <div style="text-align:right">
+      <h1>Fractal Explorer</h1>
+      <p class="sub mono">personal project — complex dynamics</p>
+    </div>
+  </div>
+</div>
+
+<div class="stage">
+  <canvas id="fractal"></canvas>
+
+  <div class="hud card">
+    <p class="eyebrow">View</p>
+    <div class="row mono"><span>Mode</span><span id="hudMode">Mandelbrot</span></div>
+    <div class="row mono"><span>Zoom</span><span id="hudZoom">1x</span></div>
+    <div class="row mono"><span>Iterations</span><span id="hudIter">300</span></div>
+    <div class="row mono"><span>Center</span><span id="hudCenter">-0.5, 0i</span></div>
+  </div>
+
+  <div class="toolbar">
+    <button class="chip" id="btnReset" title="Reset view (R)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+      Reset
+    </button>
+    <button class="chip" id="btnSave" title="Save PNG (S)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+      Save PNG
+    </button>
+  </div>
+
+  <div class="help card mono">
+    Scroll = zoom &nbsp;·&nbsp; drag = pan &nbsp;·&nbsp; right-click = Julia set at point<br>
+    R = reset &nbsp;·&nbsp; S = save PNG &nbsp;·&nbsp; Esc = back to Mandelbrot
+  </div>
+
+  <div class="toast card" id="toast"></div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var canvas = document.getElementById('fractal');
+  var ctx = canvas.getContext('2d', { alpha: false });
+  var stage = canvas.parentElement;
+
+  var hudMode = document.getElementById('hudMode');
+  var hudZoom = document.getElementById('hudZoom');
+  var hudIter = document.getElementById('hudIter');
+  var hudCenter = document.getElementById('hudCenter');
+  var toast = document.getElementById('toast');
+
+  var BASE_SCALE = 3.2;
+
+  var state = {
+    centerX: -0.5,
+    centerY: 0,
+    scale: BASE_SCALE,
+    maxIter: 300,
+    julia: false,
+    jr: -0.7,
+    ji: 0.27015
+  };
+
+  var pixelW = 0, pixelH = 0;
+  var iterData = null;      // Float64Array, cached smooth escape values (-1 = in set)
+  var iterReady = false;
+  var huePhase = 0;
+  var lastFrameTime = null;
+  var renderToken = 0;
+
+  var dragging = false;
+  var lastDragPoint = null;
+  var wheelDebounce = null;
+
+  function complexAt(px, py) {
+    return {
+      re: state.centerX + (px - pixelW / 2) / pixelW * state.scale,
+      im: state.centerY - (py - pixelH / 2) / pixelW * state.scale
+    };
+  }
+
+  function adjustMaxIterations() {
+    var depth = Math.log2(BASE_SCALE / state.scale);
+    state.maxIter = Math.max(180, Math.min(4000, Math.round(180 + depth * 60)));
+  }
+
+  function resizeCanvas() {
+    var w = Math.max(1, Math.floor(stage.clientWidth));
+    var h = Math.max(1, Math.floor(stage.clientHeight));
+    if (w === pixelW && h === pixelH) return;
+    pixelW = w; pixelH = h;
+    canvas.width = w;
+    canvas.height = h;
+    scheduleRender();
+  }
+
+  function scheduleRender() {
+    var token = ++renderToken;
+    updateHud();
+    // Compute is synchronous but fast enough at these resolutions to run
+    // straight on the main thread; the token guards against stale results
+    // if the view changes again before this finishes.
+    setTimeout(function () {
+      if (token !== renderToken) return;
+      var data = computeIterations(pixelW, pixelH, state.centerX, state.centerY,
+        state.scale, state.maxIter, state.julia, state.jr, state.ji);
+      if (token !== renderToken) return;
+      iterData = data;
+      iterReady = true;
+      colorizeAndBlit();
+    }, 0);
+  }
+
+  function computeIterations(w, h, centerX, centerY, scale, maxIter, julia, jr, ji) {
+    var data = new Float64Array(w * h);
+    var bailoutSq = 1 << 16;
+
+    for (var py = 0; py < h; py++) {
+      var im0 = centerY - (py - h / 2) / w * scale;
+      var rowOff = py * w;
+
+      for (var px = 0; px < w; px++) {
+        var re0 = centerX + (px - w / 2) / w * scale;
+
+        var zr, zi, cr, ci;
+        if (julia) { zr = re0; zi = im0; cr = jr; ci = ji; }
+        else { zr = 0; zi = 0; cr = re0; ci = im0; }
+
+        var iter = 0;
+        var zr2 = zr * zr, zi2 = zi * zi;
+        while (zr2 + zi2 <= bailoutSq && iter < maxIter) {
+          zi = 2 * zr * zi + ci;
+          zr = zr2 - zi2 + cr;
+          zr2 = zr * zr;
+          zi2 = zi * zi;
+          iter++;
+        }
+
+        if (iter >= maxIter) {
+          data[rowOff + px] = -1;
+        } else {
+          var mag = Math.sqrt(zr2 + zi2);
+          data[rowOff + px] = iter + 1 - Math.log(Math.log(mag)) / Math.LN2;
+        }
+      }
+    }
+    return data;
+  }
+
+  function palette(t) {
+    var a = 0.5, b = 0.5, c = 1.0;
+    var r = a + b * Math.cos(2 * Math.PI * (c * t + 0.00));
+    var g = a + b * Math.cos(2 * Math.PI * (c * t + 0.33));
+    var bl = a + b * Math.cos(2 * Math.PI * (c * t + 0.67));
+    return [
+      Math.max(0, Math.min(255, r * 255)) | 0,
+      Math.max(0, Math.min(255, g * 255)) | 0,
+      Math.max(0, Math.min(255, bl * 255)) | 0
+    ];
+  }
+
+  function colorizeAndBlit() {
+    if (!iterData || iterData.length !== pixelW * pixelH) return;
+    var img = ctx.createImageData(pixelW, pixelH);
+    var out = img.data;
+
+    for (var i = 0, n = pixelW * pixelH; i < n; i++) {
+      var v = iterData[i];
+      var o = i * 4;
+      if (v < 0) {
+        out[o] = 4; out[o + 1] = 2; out[o + 2] = 8; out[o + 3] = 255;
+        continue;
+      }
+      var t = v * 0.045 + huePhase;
+      var rgb = palette(t);
+      out[o] = rgb[0]; out[o + 1] = rgb[1]; out[o + 2] = rgb[2]; out[o + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  function tick(time) {
+    if (lastFrameTime == null) lastFrameTime = time;
+    var dt = (time - lastFrameTime) / 1000;
+    lastFrameTime = time;
+    huePhase += dt * 0.18;
+    if (iterReady) colorizeAndBlit();
+    requestAnimationFrame(tick);
+  }
+
+  function updateHud(cursor) {
+    hudMode.textContent = state.julia
+      ? 'Julia (' + state.jr.toFixed(4) + (state.ji >= 0 ? '+' : '') + state.ji.toFixed(4) + 'i)'
+      : 'Mandelbrot';
+    hudZoom.textContent = (BASE_SCALE / state.scale).toFixed(2) + 'x';
+    hudIter.textContent = state.maxIter;
+    hudCenter.textContent = state.centerX.toFixed(6) + ', ' + state.centerY.toFixed(6) + 'i';
+  }
+
+  function resetView() {
+    state.centerX = state.julia ? 0 : -0.5;
+    state.centerY = 0;
+    state.scale = BASE_SCALE;
+    adjustMaxIterations();
+    scheduleRender();
+  }
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function () { toast.classList.remove('show'); }, 2600);
+  }
+
+  function savePng() {
+    canvas.toBlob(function (blob) {
+      if (!blob) { showToast('Save failed'); return; }
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      var stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      a.href = url;
+      a.download = 'fractal-explorer-' + stamp + '.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+      showToast('Saved PNG');
+    }, 'image/png');
+  }
+
+  // ---- interaction ----
+
+  canvas.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    var rect = canvas.getBoundingClientRect();
+    var px = e.clientX - rect.left, py = e.clientY - rect.top;
+
+    var before = complexAt(px, py);
+    state.scale *= (e.deltaY < 0) ? 0.85 : 1.176;
+    var after = complexAt(px, py);
+    state.centerX += before.re - after.re;
+    state.centerY += before.im - after.im;
+
+    adjustMaxIterations();
+    clearTimeout(wheelDebounce);
+    updateHud();
+    wheelDebounce = setTimeout(scheduleRender, 60);
+  }, { passive: false });
+
+  canvas.addEventListener('mousedown', function (e) {
+    if (e.button !== 0) return;
+    dragging = true;
+    canvas.classList.add('dragging');
+    var rect = canvas.getBoundingClientRect();
+    lastDragPoint = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  });
+
+  window.addEventListener('mousemove', function (e) {
+    if (!dragging) return;
+    var rect = canvas.getBoundingClientRect();
+    var pt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    var dx = pt.x - lastDragPoint.x, dy = pt.y - lastDragPoint.y;
+    lastDragPoint = pt;
+
+    state.centerX -= dx / pixelW * state.scale;
+    state.centerY += dy / pixelW * state.scale;
+    updateHud();
+  });
+
+  window.addEventListener('mouseup', function () {
+    if (!dragging) return;
+    dragging = false;
+    canvas.classList.remove('dragging');
+    scheduleRender();
+  });
+
+  canvas.addEventListener('dblclick', resetView);
+
+  canvas.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+    var rect = canvas.getBoundingClientRect();
+    var px = e.clientX - rect.left, py = e.clientY - rect.top;
+
+    if (!state.julia) {
+      var c = complexAt(px, py);
+      state.jr = c.re; state.ji = c.im;
+      state.julia = true;
+      state.centerX = 0; state.centerY = 0; state.scale = BASE_SCALE;
+    } else {
+      state.julia = false;
+      state.centerX = -0.5; state.centerY = 0; state.scale = BASE_SCALE;
+    }
+    adjustMaxIterations();
+    scheduleRender();
+  });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'r' || e.key === 'R') resetView();
+    else if (e.key === 's' || e.key === 'S') savePng();
+    else if (e.key === 'Escape') { state.julia = false; resetView(); }
+  });
+
+  document.getElementById('btnReset').addEventListener('click', resetView);
+  document.getElementById('btnSave').addEventListener('click', savePng);
+
+  window.addEventListener('resize', resizeCanvas);
+
+  resizeCanvas();
+  requestAnimationFrame(tick);
+}());
+</script>
