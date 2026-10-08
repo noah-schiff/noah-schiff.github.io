@@ -92,7 +92,7 @@
 
   .btn {
     border: 1px solid var(--line); background: var(--card); color: var(--ink);
-    border-radius: 10px; padding: 8px 14px; min-height: 44px;
+    border-radius: 10px; padding: 8px 14px; min-height: 44px; white-space: nowrap;
   }
   .btn.primary { background: var(--forest); border-color: var(--forest); color: var(--on-forest); font-weight: 600; }
   .btn.primary:active { background: var(--forest-2); }
@@ -116,7 +116,10 @@
     width: 100%; border: 0; border-top: 1px dashed var(--line); background: transparent;
     padding: 10px 2px; outline: none; font-size: 15px;
   }
-  .composer-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
+  .composer-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; margin-top: 6px; }
+  .composer-bar .bar-actions { margin-left: auto; }
+  .composer-bar .bar-actions .btn:not(.primary) { padding: 8px 12px; }
+  #recordBtn.recording { min-width: 84px; }
   .toggle {
     display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: .9rem;
     min-height: 44px; user-select: none;
@@ -142,6 +145,32 @@
   .thumb { border: 0; padding: 0; background: var(--paper-2); border-radius: 8px; overflow: hidden; aspect-ratio: 1; }
   .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .chip.photos { border-style: dashed; }
+
+  /* Voice memos */
+  .memos { display: grid; gap: 6px; margin: 6px 0 8px; }
+  .memos:empty { display: none; }
+  .memo {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; padding: 4px 8px;
+  }
+  .memo audio { flex: 1 1 0; width: 0; min-width: 0; height: 36px; }
+  .memo-len { font-size: .78rem; color: var(--muted); }
+  .memo-rm { border: 0; background: none; color: var(--muted); font-size: 20px; width: 32px; height: 32px; padding: 0; }
+  .btn.recording { background: var(--danger); border-color: var(--danger); color: #fff; font-variant-numeric: tabular-nums; }
+
+  /* Live location */
+  .btn[aria-pressed="true"] { background: var(--forest); border-color: var(--forest); color: var(--on-forest); }
+  .live { padding: 12px 14px; margin-bottom: 14px; }
+  .live-head { display: flex; align-items: center; gap: 8px; }
+  .live-age { margin-left: auto; font-size: .78rem; color: var(--muted); }
+  .live-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 0 var(--forest); animation: pulse 2s infinite; }
+  .live-dot.stale { background: var(--muted); animation: none; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(53,87,60,.5); } 70% { box-shadow: 0 0 0 8px rgba(53,87,60,0); } 100% { box-shadow: 0 0 0 0 rgba(53,87,60,0); } }
+  .live-coords { font-size: 1.3rem; margin: 8px 0 6px; letter-spacing: -.01em; }
+  .live-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin: 0 0 10px; }
+  .live-grid dt { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--contour); }
+  .live-grid dd { margin: 0; font-size: .95rem; }
+  .live .bar-actions .btn { flex: 1; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
 
   dialog.viewer {
     width: 100vw; height: 100vh; max-width: 100vw; max-height: 100vh; margin: 0;
@@ -237,7 +266,10 @@
       <h1 class="serif">Fieldnotes</h1>
       <div class="count" id="count"></div>
     </div>
-    <button class="btn" id="exportBtn">Export</button>
+    <div class="bar-actions">
+      <button class="btn" id="liveBtn" aria-pressed="false" aria-controls="livePanel">📍 Live</button>
+      <button class="btn" id="exportBtn">Export</button>
+    </div>
   </header>
 
   <div class="banner" id="installBanner" hidden>
@@ -245,9 +277,29 @@
     <button aria-label="Dismiss" id="installDismiss">×</button>
   </div>
 
+  <section class="card live" id="livePanel" hidden aria-live="off">
+    <div class="live-head">
+      <span class="live-dot" id="liveDot"></span>
+      <strong>Live location</strong>
+      <span class="live-age" id="liveAge"></span>
+    </div>
+    <div class="live-coords mono" id="liveCoords">—</div>
+    <dl class="live-grid">
+      <div><dt>Accuracy</dt><dd id="liveAcc">—</dd></div>
+      <div><dt>Altitude</dt><dd id="liveAlt">—</dd></div>
+      <div><dt>Speed</dt><dd id="liveSpeed">—</dd></div>
+      <div><dt>Heading</dt><dd id="liveHeading">—</dd></div>
+    </dl>
+    <div class="bar-actions">
+      <button class="btn" id="liveCopy">Copy</button>
+      <a class="btn" id="liveMaps" href="#" target="_blank" rel="noopener">Open in Maps</a>
+    </div>
+  </section>
+
   <section class="card composer">
     <textarea id="noteText" placeholder="What are you observing?" aria-label="New note"></textarea>
     <div class="photo-strip" id="draftPhotos"></div>
+    <div class="memos" id="draftAudio"></div>
     <input class="tags-input" id="noteTags" type="text" placeholder="Tags, separated by commas" autocapitalize="none" autocomplete="off" aria-label="Tags">
     <div class="composer-bar">
       <div>
@@ -256,6 +308,7 @@
       </div>
       <div class="bar-actions">
         <button class="btn" id="addPhotoBtn" aria-label="Add photo">📷</button>
+        <button class="btn" id="recordBtn" aria-label="Record voice memo">🎙</button>
         <button class="btn primary" id="saveBtn" disabled>Save</button>
       </div>
     </div>
@@ -279,7 +332,11 @@
     <textarea id="editText" aria-label="Note text"></textarea>
     <input type="text" id="editTags" placeholder="Tags, separated by commas" autocapitalize="none" autocomplete="off" aria-label="Tags">
     <div class="photo-strip" id="editPhotos"></div>
-    <button type="button" class="btn" id="editAddPhoto" style="margin-top:8px">📷 Add photo</button>
+    <div class="memos" id="editAudio"></div>
+    <div class="bar-actions" style="margin-top:8px">
+      <button type="button" class="btn" id="editAddPhoto">📷 Add photo</button>
+      <button type="button" class="btn" id="editRecord">🎙 Record memo</button>
+    </div>
     <input type="file" id="editPhotoInput" accept="image/*" multiple hidden>
     <div class="dlg-actions">
       <button type="button" class="btn danger" id="deleteBtn">Delete</button>
@@ -299,7 +356,7 @@
       <button class="btn" data-fmt="md">Markdown (.md)<small>Readable notes grouped by day, for writing up</small></button>
       <button class="btn" data-fmt="csv">Spreadsheet (.csv)<small>One row per note, opens in Excel or Sheets</small></button>
       <button class="btn" data-fmt="geojson">GeoJSON (.geojson)<small>Located notes as points for QGIS or ArcGIS</small></button>
-      <button class="btn" data-fmt="json">Backup (.json)<small>Everything including photos, to restore later or on another device</small></button>
+      <button class="btn" data-fmt="json">Backup (.json)<small>Everything including photos and memos, to restore later or on another device</small></button>
       <button class="btn" id="importBtn">Restore from backup…<small>Adds notes from a .json backup and skips duplicates</small></button>
     </div>
     <input type="file" id="importFile" accept=".json,application/json" hidden>
@@ -337,11 +394,11 @@
   notes.forEach(n => { if (n.locStatus === 'pending') n.locStatus = 'unavailable'; });
   const saveNotes = () => store(KEY, notes);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
-  notes.forEach(n => { if (!Array.isArray(n.photos)) n.photos = []; });
+  notes.forEach(n => { if (!Array.isArray(n.photos)) n.photos = []; if (!Array.isArray(n.audio)) n.audio = []; });
 
-  // ---------- photo storage ----------
-  // Photos are too big for localStorage, so they live in IndexedDB keyed by id;
-  // notes only hold the ids.
+  // ---------- media storage ----------
+  // Photos and voice memos are too big for localStorage, so they live in
+  // IndexedDB keyed by id; notes only hold the ids.
   let dbPromise;
   const openDB = () => dbPromise || (dbPromise = new Promise((res, rej) => {
     const r = indexedDB.open('fieldnotes', 1);
@@ -349,29 +406,29 @@
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
   }));
-  const photoTx = (mode, fn) => openDB().then(db => new Promise((res, rej) => {
+  const mediaTx = (mode, fn) => openDB().then(db => new Promise((res, rej) => {
     const t = db.transaction('photos', mode);
     const req = fn(t.objectStore('photos'));
     t.oncomplete = () => res(req && 'result' in req ? req.result : undefined);
     t.onerror = t.onabort = () => rej(t.error);
   }));
-  const photoPut = rec => photoTx('readwrite', s => s.put(rec));
-  const photoGet = id => photoTx('readonly', s => s.get(id));
-  const photoKeys = () => photoTx('readonly', s => s.getAllKeys());
-  const photoDel = ids => ids.length ? photoTx('readwrite', s => { ids.forEach(id => s.delete(id)); }) : Promise.resolve();
+  const mediaPut = rec => mediaTx('readwrite', s => s.put(rec));
+  const mediaGet = id => mediaTx('readonly', s => s.get(id));
+  const mediaKeys = () => mediaTx('readonly', s => s.getAllKeys());
+  const mediaDel = ids => ids.length ? mediaTx('readwrite', s => { ids.forEach(id => s.delete(id)); }) : Promise.resolve();
 
   const urlCache = new Map();
-  async function photoURL(id) {
+  async function mediaURL(id) {
     if (urlCache.has(id)) return urlCache.get(id);
-    const rec = await photoGet(id).catch(() => null);
+    const rec = await mediaGet(id).catch(() => null);
     if (!rec) return null;
     const url = URL.createObjectURL(rec.blob);
     urlCache.set(id, url);
     return url;
   }
-  function forgetPhotos(ids) {
+  function forgetMedia(ids) {
     ids.forEach(id => { const u = urlCache.get(id); if (u) URL.revokeObjectURL(u); urlCache.delete(id); });
-    return photoDel(ids).catch(() => {});
+    return mediaDel(ids).catch(() => {});
   }
 
   // Phone photos are 3–12 MB; shrink to a size that's plenty for notes.
@@ -397,7 +454,7 @@
       try {
         const { blob, w, h } = await shrink(f);
         const id = uid();
-        await photoPut({ id, blob, w, h, added: new Date().toISOString() });
+        await mediaPut({ id, blob, w, h, added: new Date().toISOString() });
         ids.push(id);
       } catch { toast("Couldn't add that photo"); }
     }
@@ -409,7 +466,7 @@
     ids.forEach(id => {
       const ph = el('div', 'ph');
       const img = el('img'); img.alt = 'Attached photo';
-      photoURL(id).then(u => { if (u) img.src = u; });
+      mediaURL(id).then(u => { if (u) img.src = u; });
       const rm = el('button', 'rm', '×'); rm.type = 'button'; rm.setAttribute('aria-label', 'Remove photo');
       rm.addEventListener('click', () => onRemove(id));
       img.addEventListener('click', () => openViewer(id));
@@ -419,7 +476,7 @@
 
   const viewDlg = $('viewDlg');
   async function openViewer(id) {
-    const u = await photoURL(id); if (!u) return;
+    const u = await mediaURL(id); if (!u) return;
     $('viewImg').src = u; viewDlg.showModal();
   }
   viewDlg.addEventListener('click', () => viewDlg.close());
@@ -446,29 +503,38 @@
   }
 
   // ---------- location ----------
-  // Warm up a fix while the user is typing so it's ready the moment they save.
-  let lastFix = null;
-  let watchId = null;
+  // One GPS watch feeds both the note stamp (warmed up while composing, so a fix
+  // is ready the moment you save) and the live panel.
+  let lastFix = null, watchId = null, composing = false, gpsError = null;
+  let liveOn = !!prefs.live;
   const gpsStatus = $('gpsStatus');
 
-  function startWatch() {
-    if (!prefs.gps || watchId !== null || !navigator.geolocation) return;
-    gpsStatus.textContent = 'Finding location…';
-    watchId = navigator.geolocation.watchPosition(
-      p => {
-        lastFix = { lat: p.coords.latitude, lon: p.coords.longitude, acc: Math.round(p.coords.accuracy), t: Date.now() };
-        gpsStatus.textContent = `Ready · ±${lastFix.acc} m`;
-      },
-      err => {
-        gpsStatus.textContent = err.code === 1 ? 'Location permission denied' : 'Location unavailable';
-        stopWatch();
-      },
-      { enableHighAccuracy: true, maximumAge: 15000, timeout: 30000 }
-    );
+  function updateWatch() {
+    const need = !document.hidden && !!navigator.geolocation && (liveOn || (prefs.gps && composing));
+    if (need && watchId === null) {
+      gpsError = null;
+      if (prefs.gps && !freshFix()) gpsStatus.textContent = 'Finding location…';
+      watchId = navigator.geolocation.watchPosition(onFix, onFixError,
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+      renderLive();
+    } else if (!need && watchId !== null) {
+      navigator.geolocation.clearWatch(watchId); watchId = null;
+    }
   }
-  function stopWatch() {
-    if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-    watchId = null;
+  function onFix(p) {
+    const c = p.coords;
+    lastFix = { lat: c.latitude, lon: c.longitude, acc: Math.round(c.accuracy),
+      alt: c.altitude, altAcc: c.altitudeAccuracy, speed: c.speed, heading: c.heading, t: Date.now() };
+    gpsError = null;
+    if (prefs.gps) gpsStatus.textContent = `Ready · ±${lastFix.acc} m`;
+    renderLive();
+  }
+  function onFixError(err) {
+    gpsError = err.code === 1 ? 'Location permission denied' : 'Waiting for GPS signal…';
+    if (prefs.gps) gpsStatus.textContent = err.code === 1 ? gpsError : 'Location unavailable';
+    // A denial is final; timeouts just mean no fix yet, so keep watching.
+    if (err.code === 1 && watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    renderLive();
   }
   function freshFix() { return lastFix && Date.now() - lastFix.t < 120000 ? lastFix : null; }
 
@@ -490,29 +556,150 @@
   gpsToggle.checked = !!prefs.gps;
   gpsToggle.addEventListener('change', () => {
     prefs.gps = gpsToggle.checked; store(PREFS, prefs);
-    if (prefs.gps) startWatch(); else { stopWatch(); gpsStatus.textContent = ''; }
+    if (prefs.gps) composing = true; else gpsStatus.textContent = '';
+    updateWatch();
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) stopWatch(); else if (document.activeElement === $('noteText')) startWatch();
+    if (document.hidden) { composing = false; stopRecording(); }
+    else composing = document.activeElement === $('noteText');
+    updateWatch();
   });
+
+  // ---------- live location panel ----------
+  const livePanel = $('livePanel'), liveBtn = $('liveBtn');
+  const CARDINALS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const num = v => typeof v === 'number' && isFinite(v);
+  let liveTimer = null;
+
+  function renderLive() {
+    if (!liveOn) return;
+    const f = lastFix;
+    $('liveCoords').textContent = f ? fmtCoord(f) : '—';
+    $('liveAcc').textContent = f ? `±${f.acc} m` : '—';
+    $('liveAlt').textContent = f && num(f.alt)
+      ? `${Math.round(f.alt)} m (${Math.round(f.alt * 3.28084)} ft)` + (num(f.altAcc) ? ` ±${Math.round(f.altAcc)}` : '')
+      : '—';
+    $('liveSpeed').textContent = f && num(f.speed) ? `${(f.speed * 2.23694).toFixed(1)} mph` : '—';
+    $('liveHeading').textContent = f && num(f.heading) && num(f.speed) && f.speed > 0.5
+      ? `${Math.round(f.heading)}° ${CARDINALS[Math.round(f.heading / 45) % 8]}` : '—';
+    const age = f ? Math.round((Date.now() - f.t) / 1000) : null;
+    $('liveAge').textContent = gpsError && (!f || age > 30) ? gpsError
+      : f ? (age < 3 ? 'Updated just now' : `Updated ${age < 60 ? age + ' s' : Math.round(age / 60) + ' min'} ago`)
+      : 'Finding location…';
+    $('liveDot').classList.toggle('stale', !f || age > 30);
+    $('liveMaps').href = f ? `https://maps.apple.com/?ll=${f.lat},${f.lon}&q=Current%20location` : '#';
+  }
+  function setLive(on) {
+    liveOn = on; prefs.live = on; store(PREFS, prefs);
+    livePanel.hidden = !on; liveBtn.setAttribute('aria-pressed', String(on));
+    clearInterval(liveTimer); liveTimer = on ? setInterval(renderLive, 1000) : null;
+    updateWatch(); renderLive();
+  }
+  liveBtn.addEventListener('click', () => setLive(!liveOn));
+  $('liveCopy').addEventListener('click', async () => {
+    if (!lastFix) { toast('No location yet'); return; }
+    const text = `${lastFix.lat.toFixed(6)}, ${lastFix.lon.toFixed(6)}`;
+    try { await navigator.clipboard.writeText(text); toast('Copied ' + text); }
+    catch { toast(text); }
+  });
+  $('liveMaps').addEventListener('click', e => { if (!lastFix) { e.preventDefault(); toast('No location yet'); } });
+
+  // ---------- voice memos ----------
+  const AUDIO_TYPES = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'];
+  const MAX_REC_MS = 10 * 60 * 1000;
+  const canRecord = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  const fmtDur = sec => { const s = Math.round(sec || 0); return `${Math.floor(s / 60)}:${pad(s % 60)}`; };
+  let rec = null;
+
+  async function toggleRecording(btn, onDone) {
+    if (rec) { stopRecording(); return; }
+    if (!canRecord) { toast('Voice recording isn’t supported in this browser'); return; }
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (e) { toast(e.name === 'NotAllowedError' ? 'Microphone permission denied' : 'Microphone unavailable'); return; }
+    const mimeType = AUDIO_TYPES.find(t => MediaRecorder.isTypeSupported(t));
+    let mr;
+    try { mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined); }
+    catch { stream.getTracks().forEach(t => t.stop()); toast('Couldn’t start recording'); return; }
+    const r = rec = { mr, chunks: [], started: Date.now(), label: btn.textContent };
+    mr.ondataavailable = e => { if (e.data && e.data.size) r.chunks.push(e.data); };
+    mr.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      clearInterval(r.timer);
+      btn.classList.remove('recording'); btn.textContent = r.label;
+      const dur = (Date.now() - r.started) / 1000;
+      const type = (mr.mimeType || mimeType || 'audio/mp4').split(';')[0];
+      const blob = new Blob(r.chunks, { type });
+      if (!blob.size) { toast('The recording was empty'); return; }
+      const id = uid();
+      try { await mediaPut({ id, kind: 'audio', blob, type, dur, added: new Date().toISOString() }); onDone(id); }
+      catch { toast('Couldn’t save the recording'); }
+    };
+    mr.start(1000);
+    btn.classList.add('recording');
+    const tick = () => {
+      const ms = Date.now() - r.started;
+      btn.textContent = '■ ' + fmtDur(ms / 1000);
+      if (ms >= MAX_REC_MS) { stopRecording(); toast('Stopped at 10 minutes'); }
+    };
+    tick(); r.timer = setInterval(tick, 500);
+  }
+  function stopRecording() {
+    if (!rec) return;
+    const r = rec; rec = null;
+    if (r.mr.state !== 'inactive') r.mr.stop();
+  }
+
+  function memoList(container, ids, onRemove) {
+    container.replaceChildren();
+    ids.forEach(id => {
+      const row = el('div', 'memo');
+      const audio = el('audio'); audio.controls = true; audio.preload = 'metadata';
+      const len = el('span', 'memo-len mono');
+      Promise.all([mediaURL(id), mediaGet(id).catch(() => null)]).then(([u, r]) => {
+        if (u) audio.src = u;
+        if (r) len.textContent = fmtDur(r.dur);
+      });
+      row.append(el('span', 'memo-icon', '🎙'), audio, len);
+      if (onRemove) {
+        const rm = el('button', 'memo-rm', '×'); rm.type = 'button'; rm.setAttribute('aria-label', 'Remove voice memo');
+        rm.addEventListener('click', () => onRemove(id));
+        row.append(rm);
+      }
+      container.append(row);
+    });
+  }
 
   // ---------- composer ----------
   const noteText = $('noteText'), noteTags = $('noteTags'), saveBtn = $('saveBtn');
   const draft = load(DRAFT, null);
   // Draft photos are already in IndexedDB, so they survive the app being closed.
   let draftPhotos = (draft && draft.photos) || [];
+  let draftAudio = (draft && draft.audio) || [];
   if (draft) { noteText.value = draft.text || ''; noteTags.value = draft.tags || ''; }
-  const syncSave = () => { saveBtn.disabled = !noteText.value.trim() && !draftPhotos.length; };
-  const saveDraft = () => store(DRAFT, { text: noteText.value, tags: noteTags.value, photos: draftPhotos });
+  const syncSave = () => { saveBtn.disabled = !noteText.value.trim() && !draftPhotos.length && !draftAudio.length; };
+  const saveDraft = () => store(DRAFT, { text: noteText.value, tags: noteTags.value, photos: draftPhotos, audio: draftAudio });
+  const renderDraftAudio = () => memoList($('draftAudio'), draftAudio, id => {
+    draftAudio = draftAudio.filter(x => x !== id); forgetMedia([id]);
+    saveDraft(); renderDraftAudio(); syncSave();
+  });
   const renderDraftPhotos = () => photoStrip($('draftPhotos'), draftPhotos, id => {
-    draftPhotos = draftPhotos.filter(x => x !== id); forgetPhotos([id]);
+    draftPhotos = draftPhotos.filter(x => x !== id); forgetMedia([id]);
     saveDraft(); renderDraftPhotos(); syncSave();
   });
-  syncSave(); renderDraftPhotos();
+  syncSave(); renderDraftPhotos(); renderDraftAudio();
   [noteText, noteTags].forEach(i => i.addEventListener('input', () => { syncSave(); saveDraft(); }));
-  noteText.addEventListener('focus', startWatch);
+  const startComposing = () => { composing = true; updateWatch(); };
+  noteText.addEventListener('focus', startComposing);
 
-  $('addPhotoBtn').addEventListener('click', () => { startWatch(); $('photoInput').click(); });
+  $('addPhotoBtn').addEventListener('click', () => { startComposing(); $('photoInput').click(); });
+  $('recordBtn').addEventListener('click', e => {
+    startComposing();
+    toggleRecording(e.currentTarget, id => {
+      draftAudio = [...draftAudio, id];
+      saveDraft(); renderDraftAudio(); syncSave();
+    });
+  });
   $('photoInput').addEventListener('change', async e => {
     const files = [...e.target.files]; e.target.value = '';
     if (!files.length) return;
@@ -523,15 +710,16 @@
 
   saveBtn.addEventListener('click', () => {
     const text = noteText.value.trim();
-    if (!text && !draftPhotos.length) return;
+    if (!text && !draftPhotos.length && !draftAudio.length) return;
+    if (rec) { toast('Stop recording first'); return; }
     const now = new Date().toISOString();
-    const note = { id: uid(), created: now, updated: now, text, tags: parseTags(noteTags.value), photos: draftPhotos, loc: null, locStatus: null };
+    const note = { id: uid(), created: now, updated: now, text, tags: parseTags(noteTags.value), photos: draftPhotos, audio: draftAudio, loc: null, locStatus: null };
     if (prefs.gps && navigator.geolocation) locateNote(note);
     notes.unshift(note);
     if (!saveNotes()) { notes.shift(); return; }
-    noteText.value = ''; noteTags.value = ''; draftPhotos = [];
+    noteText.value = ''; noteTags.value = ''; draftPhotos = []; draftAudio = [];
     try { localStorage.removeItem(DRAFT); } catch {}
-    syncSave(); renderDraftPhotos(); render();
+    syncSave(); renderDraftPhotos(); renderDraftAudio(); render();
     toast('Saved');
   });
 
@@ -590,12 +778,13 @@
         n.photos.forEach(id => {
           const b = el('button', 'thumb'); b.setAttribute('aria-label', 'View photo');
           const img = el('img'); img.alt = ''; img.loading = 'lazy';
-          photoURL(id).then(u => { if (u) img.src = u; });
+          mediaURL(id).then(u => { if (u) img.src = u; });
           b.append(img); b.addEventListener('click', () => openViewer(id));
           thumbs.append(b);
         });
         card.append(thumbs);
       }
+      if (n.audio.length) { const memos = el('div', 'memos'); memoList(memos, n.audio); card.append(memos); }
 
       const meta = el('div', 'note-meta');
       n.tags.forEach(t => {
@@ -614,21 +803,27 @@
   let editingId = null;
   // Photo changes are staged until Save: added ones are stored right away (and
   // dropped on cancel), removed ones are only deleted once the edit is saved.
-  let editPhotos = [], editAdded = [], editSaved = false;
+  let editPhotos = [], editAudio = [], editAdded = [], editSaved = false;
   const renderEditPhotos = () => photoStrip($('editPhotos'), editPhotos, id => {
     editPhotos = editPhotos.filter(x => x !== id); renderEditPhotos();
   });
+  const renderEditAudio = () => memoList($('editAudio'), editAudio, id => {
+    editAudio = editAudio.filter(x => x !== id); renderEditAudio();
+  });
   function openEdit(id) {
     const n = notes.find(x => x.id === id); if (!n) return;
-    editingId = id; editPhotos = [...n.photos]; editAdded = []; editSaved = false;
+    editingId = id; editPhotos = [...n.photos]; editAudio = [...n.audio]; editAdded = []; editSaved = false;
     const d = new Date(n.created);
     $('editMeta').textContent = `${fmtDay(d)} · ${fmtTime(d)}` + (n.loc ? ` · ${fmtCoord(n.loc)}` : '');
     $('editText').value = n.text;
     $('editTags').value = n.tags.join(', ');
-    renderEditPhotos();
+    renderEditPhotos(); renderEditAudio();
     editDlg.showModal();
   }
   $('editAddPhoto').addEventListener('click', () => $('editPhotoInput').click());
+  $('editRecord').addEventListener('click', e => toggleRecording(e.currentTarget, id => {
+    editAdded.push(id); editAudio.push(id); renderEditAudio();
+  }));
   $('editPhotoInput').addEventListener('change', async e => {
     const files = [...e.target.files]; e.target.value = '';
     if (!files.length) return;
@@ -639,15 +834,17 @@
     const n = notes.find(x => x.id === editingId);
     const text = $('editText').value.trim();
     if (!n) return;
-    if (!text && !editPhotos.length) { e.preventDefault(); toast('A note needs text or a photo — use Delete to remove it'); return; }
-    const removed = n.photos.filter(id => !editPhotos.includes(id));
-    n.text = text; n.tags = parseTags($('editTags').value); n.photos = [...editPhotos]; n.updated = new Date().toISOString();
+    if (rec) { e.preventDefault(); toast('Stop recording first'); return; }
+    if (!text && !editPhotos.length && !editAudio.length) { e.preventDefault(); toast('A note needs text, a photo or a memo — use Delete to remove it'); return; }
+    const removed = [...n.photos.filter(id => !editPhotos.includes(id)), ...n.audio.filter(id => !editAudio.includes(id))];
+    n.text = text; n.tags = parseTags($('editTags').value); n.photos = [...editPhotos]; n.audio = [...editAudio]; n.updated = new Date().toISOString();
     editSaved = true;
-    if (saveNotes()) forgetPhotos(removed);
+    if (saveNotes()) forgetMedia(removed);
     render(); toast('Updated');
   });
   editDlg.addEventListener('close', () => {
-    if (!editSaved) forgetPhotos(editAdded);
+    stopRecording();
+    if (!editSaved) forgetMedia(editAdded);
     editAdded = [];
   });
   $('editCancel').addEventListener('click', () => editDlg.close());
@@ -655,17 +852,19 @@
     if (!confirm('Delete this note? This cannot be undone.')) return;
     const n = notes.find(x => x.id === editingId);
     notes = notes.filter(x => x.id !== editingId);
-    if (saveNotes() && n) forgetPhotos(n.photos);
+    if (saveNotes() && n) forgetMedia([...n.photos, ...n.audio]);
     editDlg.close(); render(); toast('Deleted');
   });
 
   // ---------- export / import ----------
   const exportDlg = $('exportDlg');
+  const plural = (k, word) => `${k} ${word}${k === 1 ? '' : 's'}`;
   $('exportBtn').addEventListener('click', () => {
     const located = notes.filter(n => n.loc).length;
     const photos = notes.reduce((a, n) => a + n.photos.length, 0);
-    $('exportSub').textContent = `${notes.length} notes, ${located} with location, ${photos} photo${photos === 1 ? '' : 's'}.` +
-      (photos ? ' Exports include a photos folder in a .zip.' : '');
+    const memos = notes.reduce((a, n) => a + n.audio.length, 0);
+    $('exportSub').textContent = `${plural(notes.length, 'note')}, ${located} with location, ${plural(photos, 'photo')}, ${plural(memos, 'voice memo')}.` +
+      (photos || memos ? ' Exports with media come as a .zip with photos and audio folders.' : '');
     exportDlg.showModal();
   });
   $('exportClose').addEventListener('click', () => exportDlg.close());
@@ -673,58 +872,76 @@
   const chrono = () => [...notes].sort((a, b) => a.created.localeCompare(b.created));
   const stamp = () => { const d = new Date(); return `${dayKey(d)}_${pad(d.getHours())}${pad(d.getMinutes())}`; };
   const csvCell = v => /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-  // Readable, sortable file names: 2026-10-08_142530_k3x9_1.jpg (the id tail
-  // keeps notes saved in the same second apart).
-  const photoNames = n => {
-    const d = new Date(n.created);
-    const base = `${dayKey(d)}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}_${n.id.slice(-4)}`;
-    return n.photos.map((_, i) => `${base}_${i + 1}.jpg`);
-  };
+  const AUDIO_EXT = { 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/aac': 'aac', 'audio/webm': 'webm', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/wav': 'wav' };
+
+  // Gather the media files for a set of notes, named readably and sortably:
+  // photos/2026-10-08_142530_k3x9_1.jpg, audio/2026-10-08_142530_k3x9_memo1.m4a
+  // (the id tail keeps notes saved in the same second apart).
+  async function collectMedia(list) {
+    const paths = new Map(), files = [];
+    for (const n of list) {
+      const d = new Date(n.created);
+      const base = `${dayKey(d)}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}_${n.id.slice(-4)}`;
+      const add = async (id, name) => {
+        const r = await mediaGet(id).catch(() => null);
+        if (!r) return;
+        paths.set(id, { path: name(r), dur: r.dur });
+        files.push({ name: paths.get(id).path, blob: r.blob });
+      };
+      for (const [i, id] of n.photos.entries()) await add(id, () => `photos/${base}_${i + 1}.jpg`);
+      for (const [i, id] of n.audio.entries()) await add(id, r => `audio/${base}_memo${i + 1}.${AUDIO_EXT[r.type] || 'm4a'}`);
+    }
+    return { paths, files };
+  }
+  const pathsOf = (ids, paths) => ids.map(id => paths.get(id)).filter(Boolean);
 
   const formats = {
-    md() {
+    md(list, paths) {
       let out = '# Fieldnotes\n';
       let day = null;
-      for (const n of chrono()) {
+      for (const n of list) {
         const d = new Date(n.created);
         if (dayKey(d) !== day) { day = dayKey(d); out += `\n## ${d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n`; }
         out += `\n### ${fmtTime(d)}` + (n.loc ? ` — ${fmtCoord(n.loc)} (±${n.loc.acc} m)` : '') + '\n\n';
         if (n.text) out += n.text + '\n';
-        photoNames(n).forEach(p => { out += `\n![](photos/${p})\n`; });
+        pathsOf(n.photos, paths).forEach(p => { out += `\n![](${p.path})\n`; });
+        pathsOf(n.audio, paths).forEach(p => { out += `\n[🎙 Voice memo (${fmtDur(p.dur)})](${p.path})\n`; });
         if (n.tags.length) out += '\n' + n.tags.map(t => '#' + t).join(' ') + '\n';
       }
       return { body: out, type: 'text/markdown', ext: 'md' };
     },
-    csv() {
-      const rows = [['id', 'date', 'time', 'latitude', 'longitude', 'accuracy_m', 'tags', 'photos', 'text']];
-      for (const n of chrono()) {
+    csv(list, paths) {
+      const rows = [['id', 'date', 'time', 'latitude', 'longitude', 'accuracy_m', 'tags', 'photos', 'audio', 'text']];
+      for (const n of list) {
         const d = new Date(n.created);
         rows.push([n.id, dayKey(d), `${pad(d.getHours())}:${pad(d.getMinutes())}`,
           n.loc ? String(n.loc.lat) : '', n.loc ? String(n.loc.lon) : '', n.loc ? String(n.loc.acc) : '',
-          n.tags.join('; '), photoNames(n).join('; '), n.text]);
+          n.tags.join('; '), pathsOf(n.photos, paths).map(p => p.path).join('; '),
+          pathsOf(n.audio, paths).map(p => p.path).join('; '), n.text]);
       }
       // BOM so Excel reads accented characters correctly.
       return { body: '﻿' + rows.map(r => r.map(csvCell).join(',')).join('\r\n'), type: 'text/csv', ext: 'csv' };
     },
-    geojson() {
-      const located = chrono().filter(n => n.loc);
-      if (!located.length) { toast('No notes have a location yet'); return null; }
-      const features = located.map(n => ({
+    geojson(list, paths) {
+      const features = list.map(n => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [n.loc.lon, n.loc.lat] },
-        properties: { id: n.id, created: n.created, accuracy_m: n.loc.acc, tags: n.tags.join(', '), photos: photoNames(n).map(p => 'photos/' + p).join(', '), text: n.text }
+        properties: { id: n.id, created: n.created, accuracy_m: n.loc.acc, tags: n.tags.join(', '),
+          photos: pathsOf(n.photos, paths).map(p => p.path).join(', '),
+          audio: pathsOf(n.audio, paths).map(p => p.path).join(', '), text: n.text }
       }));
-      return { body: JSON.stringify({ type: 'FeatureCollection', features }, null, 2), type: 'application/geo+json', ext: 'geojson', only: located };
-    },
-    async json() {
-      const photos = {};
-      for (const n of notes) for (const id of n.photos) {
-        const rec = await photoGet(id).catch(() => null);
-        if (rec) photos[id] = { w: rec.w, h: rec.h, data: await blobToDataURL(rec.blob) };
-      }
-      return { body: JSON.stringify({ app: 'fieldnotes', version: 2, exported: new Date().toISOString(), notes, photos }), type: 'application/json', ext: 'json', noZip: true };
+      return { body: JSON.stringify({ type: 'FeatureCollection', features }, null, 2), type: 'application/geo+json', ext: 'geojson' };
     }
   };
+
+  async function backup() {
+    const media = {};
+    for (const n of notes) for (const id of [...n.photos, ...n.audio]) {
+      const r = await mediaGet(id).catch(() => null);
+      if (r) media[id] = { kind: r.kind || 'photo', type: r.type, w: r.w, h: r.h, dur: r.dur, data: await blobToDataURL(r.blob) };
+    }
+    return { body: JSON.stringify({ app: 'fieldnotes', version: 3, exported: new Date().toISOString(), notes, media }), type: 'application/json', ext: 'json' };
+  }
 
   const blobToDataURL = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); });
 
@@ -764,20 +981,10 @@
     return new Blob([...parts, ...central, end], { type: 'application/zip' });
   }
 
-  async function withPhotos(out) {
-    const subset = out.only || notes;
-    const entries = [];
-    for (const n of subset) {
-      const names = photoNames(n);
-      for (let i = 0; i < n.photos.length; i++) {
-        const rec = await photoGet(n.photos[i]).catch(() => null);
-        if (rec) entries.push({ name: 'photos/' + names[i], data: new Uint8Array(await rec.blob.arrayBuffer()) });
-      }
-    }
-    if (out.noZip || !entries.length) return out;
+  async function zipWith(out, media) {
     const folder = `fieldnotes_${stamp()}`;
-    const files = [{ name: `${folder}/fieldnotes.${out.ext}`, data: new TextEncoder().encode(out.body) },
-      ...entries.map(e => ({ name: `${folder}/${e.name}`, data: e.data }))];
+    const files = [{ name: `${folder}/fieldnotes.${out.ext}`, data: new TextEncoder().encode(out.body) }];
+    for (const f of media) files.push({ name: `${folder}/${f.name}`, data: new Uint8Array(await f.blob.arrayBuffer()) });
     return { body: makeZip(files), type: 'application/zip', ext: 'zip' };
   }
 
@@ -796,11 +1003,15 @@
   }
 
   document.querySelectorAll('[data-fmt]').forEach(b => b.addEventListener('click', async () => {
-    if (!notes.length) { toast('Nothing to export yet'); return; }
+    const fmt = b.dataset.fmt;
+    const list = fmt === 'geojson' ? chrono().filter(n => n.loc) : chrono();
+    if (!list.length) { toast(fmt === 'geojson' && notes.length ? 'No notes have a location yet' : 'Nothing to export yet'); return; }
     b.disabled = true;
     try {
-      const out = await formats[b.dataset.fmt]();
-      if (out) await deliver(await withPhotos(out));
+      if (fmt === 'json') { await deliver(await backup()); return; }
+      const { paths, files } = await collectMedia(list);
+      const out = formats[fmt](list, paths);
+      await deliver(files.length ? await zipWith(out, files) : out);
     } catch { toast('Export failed'); }
     finally { b.disabled = false; }
   }));
@@ -813,20 +1024,26 @@
       const data = JSON.parse(await f.text());
       const incoming = Array.isArray(data) ? data : data.notes;
       if (!Array.isArray(incoming)) throw new Error();
-      const photos = (data && data.photos) || {};
+      // v3 backups keep photos and memos under "media"; v2 had only "photos".
+      const media = (data && (data.media || data.photos)) || {};
       const have = new Set(notes.map(n => n.id));
       const valid = [];
       for (const n of incoming) {
         if (!n || typeof n.id !== 'string' || typeof n.text !== 'string' || typeof n.created !== 'string' || have.has(n.id)) continue;
-        const kept = [];
-        for (const id of Array.isArray(n.photos) ? n.photos : []) {
-          const p = photos[id];
-          if (!p || typeof p.data !== 'string' || !p.data.startsWith('data:image/')) continue;
-          const blob = await (await fetch(p.data)).blob();
-          await photoPut({ id, blob, w: p.w, h: p.h, added: new Date().toISOString() });
-          kept.push(id);
-        }
-        valid.push({ ...n, tags: Array.isArray(n.tags) ? n.tags : [], photos: kept, loc: n.loc || null, locStatus: n.loc ? 'ok' : null });
+        const restore = async (ids, prefix, kind) => {
+          const kept = [];
+          for (const id of Array.isArray(ids) ? ids : []) {
+            const m = media[id];
+            if (!m || typeof m.data !== 'string' || !m.data.startsWith(prefix)) continue;
+            const blob = await (await fetch(m.data)).blob();
+            await mediaPut({ id, kind, blob, type: m.type || blob.type, w: m.w, h: m.h, dur: m.dur, added: new Date().toISOString() });
+            kept.push(id);
+          }
+          return kept;
+        };
+        const photos = await restore(n.photos, 'data:image/', 'photo');
+        const audio = await restore(n.audio, 'data:audio/', 'audio');
+        valid.push({ ...n, tags: Array.isArray(n.tags) ? n.tags : [], photos, audio, loc: n.loc || null, locStatus: n.loc ? 'ok' : null });
       }
       notes = [...notes, ...valid].sort((a, b) => b.created.localeCompare(a.created));
       saveNotes(); render();
@@ -834,11 +1051,11 @@
     } catch { toast("That file isn't a Fieldnotes backup"); }
   });
 
-  // Clear out photos left behind by an interrupted edit or draft. Skipped when
-  // no notes loaded, so an unreadable notes store can never wipe photos.
-  if (notes.length) photoKeys().then(keys => {
-    const used = new Set([...notes.flatMap(n => n.photos), ...draftPhotos]);
-    forgetPhotos(keys.filter(k => !used.has(k)));
+  // Clear out media left behind by an interrupted edit or draft. Skipped when
+  // no notes loaded, so an unreadable notes store can never wipe media.
+  if (notes.length) mediaKeys().then(keys => {
+    const used = new Set([...notes.flatMap(n => [...n.photos, ...n.audio]), ...draftPhotos, ...draftAudio]);
+    forgetMedia(keys.filter(k => !used.has(k)));
   }).catch(() => {});
 
   // ---------- install hint & offline ----------
@@ -846,6 +1063,8 @@
   const standalone = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches;
   if (isIOS && !standalone && !prefs.hideInstall) $('installBanner').hidden = false;
   $('installDismiss').addEventListener('click', () => { $('installBanner').hidden = true; prefs.hideInstall = true; store(PREFS, prefs); });
+
+  if (liveOn) setLive(true);
 
   if ('serviceWorker' in navigator) {
     // When a new version installs, reload once so it shows up right away
