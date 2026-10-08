@@ -1,6 +1,6 @@
 // Offline support. Pages load from the network when possible so updates show up
 // right away, falling back to the cache offline; other files are cache-first.
-const CACHE = 'fieldnotes-v6';
+const CACHE = 'fieldnotes-v7';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
