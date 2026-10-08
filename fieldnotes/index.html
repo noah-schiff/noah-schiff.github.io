@@ -847,7 +847,19 @@
   if (isIOS && !standalone && !prefs.hideInstall) $('installBanner').hidden = false;
   $('installDismiss').addEventListener('click', () => { $('installBanner').hidden = true; prefs.hideInstall = true; store(PREFS, prefs); });
 
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    // When a new version installs, reload once so it shows up right away
+    // (skipped on first install, when there was no older version running).
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadController && !reloaded) { reloaded = true; location.reload(); }
+    });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+      // Home-screen apps often resume instead of relaunching; check for updates then too.
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
+    }).catch(() => {});
+  }
 
   render();
 })();
