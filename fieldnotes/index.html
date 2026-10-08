@@ -146,6 +146,25 @@
   .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .chip.photos { border-style: dashed; }
 
+  /* Connections */
+  .dlg-sub { font-size: 1.05rem; margin: 18px 0 8px; }
+  .conn { display: flex; flex-direction: column; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .conn-status { font-size: .82rem; color: var(--muted); }
+  .bar-actions.multiline { flex-wrap: wrap; }
+  .steps { padding-left: 20px; margin: 0 0 12px; font-size: .92rem; color: var(--ink-2); }
+  .steps li { margin-bottom: 6px; }
+  .steps a { color: var(--water); }
+  .copyrow { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  .copyrow code { flex: 1; min-width: 0; overflow-wrap: anywhere; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: .8rem; }
+  .taxa { display: grid; gap: 4px; margin-top: 6px; }
+  .taxa:empty { display: none; }
+  .taxon { text-align: left; border: 1px solid var(--line); background: var(--paper); border-radius: 8px; padding: 8px 10px; min-height: 40px; }
+  .taxon em { color: var(--muted); font-size: .85rem; }
+  .picked { font-size: .82rem; color: var(--forest); margin-top: 4px; }
+  .picked:empty { display: none; }
+  .dlg .toggle { display: flex; margin-top: 4px; }
+  a.chip, .chip.linked { color: var(--forest); text-decoration: none; }
+
   /* Voice memos */
   .memos { display: grid; gap: 6px; margin: 6px 0 8px; }
   .memos:empty { display: none; }
@@ -247,7 +266,7 @@
   .dlg-actions { display: flex; gap: 8px; justify-content: space-between; margin-top: 14px; flex-wrap: wrap; }
   .dlg-actions .right { display: flex; gap: 8px; margin-left: auto; }
   .export-list { display: grid; gap: 8px; }
-  .export-list .btn { text-align: left; display: flex; flex-direction: column; align-items: flex-start; padding: 10px 14px; }
+  .export-list .btn { text-align: left; display: flex; flex-direction: column; align-items: flex-start; padding: 10px 14px; white-space: normal; }
   .export-list .btn small { color: var(--muted); font-size: .78rem; }
 
   .toast {
@@ -337,6 +356,7 @@
       <button type="button" class="btn" id="editAddPhoto">📷 Add photo</button>
       <button type="button" class="btn" id="editRecord">🎙 Record memo</button>
     </div>
+    <button type="button" class="btn" id="editInat" style="margin-top:8px">🔎 Post to iNaturalist</button>
     <input type="file" id="editPhotoInput" accept="image/*" multiple hidden>
     <div class="dlg-actions">
       <button type="button" class="btn danger" id="deleteBtn">Delete</button>
@@ -360,7 +380,71 @@
       <button class="btn" id="importBtn">Restore from backup…<small>Adds notes from a .json backup and skips duplicates</small></button>
     </div>
     <input type="file" id="importFile" accept=".json,application/json" hidden>
+    <h3 class="dlg-sub serif">Connections</h3>
+    <div class="conn">
+      <div><strong>ArcGIS Online</strong><div class="conn-status" id="agoStatus"></div></div>
+      <div class="bar-actions multiline" id="agoActions"></div>
+    </div>
+    <div class="conn">
+      <div><strong>iNaturalist</strong><div class="conn-status" id="inatStatus"></div></div>
+      <div class="bar-actions multiline" id="inatActions"></div>
+    </div>
     <div class="dlg-actions"><div class="right"><button class="btn" id="exportClose">Done</button></div></div>
+  </div>
+</dialog>
+
+<dialog id="agoDlg">
+  <div class="dlg">
+    <h2 class="serif">Connect ArcGIS Online</h2>
+    <p class="sub">One-time setup, about 3 minutes. Do it in ArcGIS Online on a computer or in Safari.</p>
+    <ol class="steps">
+      <li>Sign in at <strong>arcgis.com</strong> with your school or work account and open <strong>Content</strong>.</li>
+      <li>Choose <strong>New item → Developer credentials → OAuth credentials</strong>.</li>
+      <li>For <strong>Redirect URLs</strong>, add this address exactly:
+        <div class="copyrow"><code id="agoRedirect"></code><button type="button" class="btn" id="agoCopyRedirect">Copy</button></div></li>
+      <li>Give it a title like “Fieldnotes”, finish, then copy its <strong>Client ID</strong> and paste it here.</li>
+    </ol>
+    <input type="text" id="agoClientId" placeholder="Client ID" autocapitalize="none" autocomplete="off" spellcheck="false" aria-label="ArcGIS Client ID">
+    <p class="sub" style="margin-top:10px">Next you’ll sign in with ArcGIS. On first sync Fieldnotes creates a “Fieldnotes” layer in your content, and syncing adds your located notes as points with photos and memos attached.</p>
+    <div class="dlg-actions"><div class="right">
+      <button type="button" class="btn" id="agoCancel">Cancel</button>
+      <button type="button" class="btn primary" id="agoGo">Sign in</button>
+    </div></div>
+  </div>
+</dialog>
+
+<dialog id="inatDlg">
+  <div class="dlg">
+    <h2 class="serif">Connect iNaturalist</h2>
+    <ol class="steps">
+      <li>In <strong>Safari</strong>, sign in at inaturalist.org, then open
+        <a href="https://www.inaturalist.org/users/api_token" target="_blank" rel="noopener">inaturalist.org/users/api_token</a>.</li>
+      <li>Select all of the text on that page, copy it, and paste it below.</li>
+    </ol>
+    <textarea id="inatToken" placeholder="Paste your API token" autocapitalize="none" spellcheck="false" aria-label="iNaturalist API token" style="min-height:90px"></textarea>
+    <p class="sub" style="margin-top:10px">The token lasts 24 hours, so on days you post you’ll paste a fresh one. It stays on this phone and is only sent to iNaturalist.</p>
+    <div class="dlg-actions"><div class="right">
+      <button type="button" class="btn" id="inatCancel">Cancel</button>
+      <button type="button" class="btn primary" id="inatGo">Connect</button>
+    </div></div>
+  </div>
+</dialog>
+
+<dialog id="inatPostDlg">
+  <div class="dlg">
+    <h2 class="serif">Post to iNaturalist</h2>
+    <p class="sub" id="inatPostMeta"></p>
+    <input type="text" id="inatSpecies" placeholder="What is it? (e.g. Great Egret)" autocomplete="off" aria-label="Species">
+    <div class="taxa" id="inatTaxa"></div>
+    <div class="picked" id="inatPicked"></div>
+    <textarea id="inatDesc" aria-label="Description" style="min-height:90px;margin-top:8px"></textarea>
+    <label class="toggle" id="inatPhotosRow"><input type="checkbox" id="inatPhotos" checked> <span id="inatPhotosLabel"></span></label>
+    <label class="toggle" id="inatSoundsRow"><input type="checkbox" id="inatSounds" checked> <span id="inatSoundsLabel"></span></label>
+    <label class="toggle"><input type="checkbox" id="inatObscure"> Obscure exact location (for sensitive species or private land)</label>
+    <div class="dlg-actions"><div class="right">
+      <button type="button" class="btn" id="inatPostCancel">Cancel</button>
+      <button type="button" class="btn primary" id="inatPostGo">Post</button>
+    </div></div>
   </div>
 </dialog>
 
@@ -793,6 +877,11 @@
         meta.append(c);
       });
       const loc = locNode(n); if (loc) meta.append(loc);
+      if (n.arcgis) meta.append(el('span', 'chip linked', n.updated > n.arcgis.synced ? 'ArcGIS · edited' : 'ArcGIS ✓'));
+      if (n.inat) {
+        const a = el('a', 'chip linked', 'iNaturalist ↗'); a.href = n.inat.url; a.target = '_blank'; a.rel = 'noopener';
+        meta.append(a);
+      }
       if (meta.childNodes.length) card.append(meta);
       list.append(card);
     }
@@ -818,9 +907,14 @@
     $('editText').value = n.text;
     $('editTags').value = n.tags.join(', ');
     renderEditPhotos(); renderEditAudio();
+    $('editInat').textContent = n.inat ? 'View on iNaturalist ↗' : '🔎 Post to iNaturalist';
     editDlg.showModal();
   }
   $('editAddPhoto').addEventListener('click', () => $('editPhotoInput').click());
+  $('editInat').addEventListener('click', () => {
+    const n = notes.find(x => x.id === editingId); if (!n) return;
+    if (n.inat) window.open(n.inat.url, '_blank', 'noopener'); else openInatPost(n.id);
+  });
   $('editRecord').addEventListener('click', e => toggleRecording(e.currentTarget, id => {
     editAdded.push(id); editAudio.push(id); renderEditAudio();
   }));
@@ -852,7 +946,11 @@
     if (!confirm('Delete this note? This cannot be undone.')) return;
     const n = notes.find(x => x.id === editingId);
     notes = notes.filter(x => x.id !== editingId);
-    if (saveNotes() && n) forgetMedia([...n.photos, ...n.audio]);
+    if (saveNotes() && n) {
+      forgetMedia([...n.photos, ...n.audio]);
+      // Remove it from the ArcGIS layer on the next sync too.
+      if (n.arcgis) { ago.pendingDeletes.push(n.arcgis.oid); saveAgo(); }
+    }
     editDlg.close(); render(); toast('Deleted');
   });
 
@@ -1057,6 +1155,351 @@
     const used = new Set([...notes.flatMap(n => [...n.photos, ...n.audio]), ...draftPhotos, ...draftAudio]);
     forgetMedia(keys.filter(k => !used.has(k)));
   }).catch(() => {});
+
+  // ---------- connections: shared ----------
+  const REDIRECT = new URL('./', location.href).href;
+  const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const randomKey = () => b64url(crypto.getRandomValues(new Uint8Array(32)));
+  const sha256 = async s => b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)));
+  const fmtWhen = ms => { const h = Math.round(ms / 3600000); return h >= 1 ? `${h} h` : `${Math.max(1, Math.round(ms / 60000))} min`; };
+  function actionButtons(container, buttons) {
+    container.replaceChildren(...buttons.map(([label, fn, primary]) => {
+      const b = el('button', 'btn' + (primary ? ' primary' : ''), label); b.type = 'button';
+      b.addEventListener('click', fn); return b;
+    }));
+  }
+
+  // ---------- ArcGIS Online ----------
+  // Sign-in is OAuth 2.0 with PKCE against the user's own OAuth credentials, so
+  // school/work single sign-on works. Notes sync into a hosted feature layer the
+  // app creates on first sync; photos and memos go up as attachments.
+  const AGO = 'https://www.arcgis.com/sharing/rest';
+  const AGO_KEY = 'fieldnotes.arcgis';
+  const ago = load(AGO_KEY, {});
+  ago.pendingDeletes = ago.pendingDeletes || [];
+  const saveAgo = () => store(AGO_KEY, ago);
+  const agoSignedIn = () => !!(ago.refresh && ago.refreshExpires > Date.now()) || !!(ago.token && ago.expires > Date.now());
+
+  async function agoSignIn() {
+    const verifier = randomKey(), state = randomKey();
+    ago.pkce = { verifier, state }; saveAgo();
+    const q = new URLSearchParams({ client_id: ago.clientId, response_type: 'code', redirect_uri: REDIRECT,
+      code_challenge: await sha256(verifier), code_challenge_method: 'S256', state });
+    location.href = `${AGO}/oauth2/authorize?${q}`;
+  }
+
+  async function agoTokenRequest(params) {
+    const res = await fetch(`${AGO}/oauth2/token`, { method: 'POST', body: new URLSearchParams({ client_id: ago.clientId, ...params }) });
+    const j = await res.json();
+    if (j.error) throw new Error(j.error_description || (j.error.message) || 'ArcGIS sign-in failed');
+    ago.token = j.access_token;
+    ago.expires = Date.now() + (j.expires_in || 1800) * 1000;
+    if (j.refresh_token) { ago.refresh = j.refresh_token; ago.refreshExpires = Date.now() + (j.refresh_token_expires_in || 1209600) * 1000; }
+    if (j.username) ago.username = j.username;
+    saveAgo();
+  }
+
+  // Returning from the ArcGIS sign-in page: swap the code for tokens.
+  async function agoFinishSignIn() {
+    const q = new URLSearchParams(location.search);
+    if (!q.has('code') && !q.has('error')) return;
+    if (!ago.pkce || q.get('state') !== ago.pkce.state) return;
+    const { verifier } = ago.pkce; delete ago.pkce; saveAgo();
+    history.replaceState(null, '', REDIRECT);
+    if (q.has('error')) { toast('ArcGIS sign-in was cancelled'); return; }
+    try {
+      await agoTokenRequest({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: REDIRECT, code_verifier: verifier });
+      toast(`Signed in to ArcGIS as ${ago.username}`);
+    } catch (e) { toast(e.message); }
+    renderConnections();
+  }
+
+  async function agoToken() {
+    if (ago.token && ago.expires > Date.now() + 60000) return ago.token;
+    if (ago.refresh && ago.refreshExpires > Date.now()) { await agoTokenRequest({ grant_type: 'refresh_token', refresh_token: ago.refresh }); return ago.token; }
+    throw new Error('Your ArcGIS sign-in has expired — sign in again');
+  }
+
+  async function agoPost(url, params, file) {
+    const token = await agoToken();
+    let body;
+    if (file) {
+      body = new FormData();
+      Object.entries({ ...params, f: 'json', token }).forEach(([k, v]) => body.append(k, v));
+      body.append('attachment', file.blob, file.name);
+    } else body = new URLSearchParams({ ...params, f: 'json', token });
+    const res = await fetch(url, { method: 'POST', body });
+    const j = await res.json();
+    if (j.error) throw new Error(j.error.message || 'ArcGIS request failed');
+    return j;
+  }
+
+  const AGO_FIELDS = [
+    { name: 'OBJECTID', type: 'esriFieldTypeOID', alias: 'OBJECTID', nullable: false, editable: false },
+    { name: 'GlobalID', type: 'esriFieldTypeGlobalID', alias: 'GlobalID', length: 38, nullable: false, editable: false },
+    { name: 'note_id', type: 'esriFieldTypeString', alias: 'Note ID', length: 64, nullable: true, editable: true },
+    { name: 'observed', type: 'esriFieldTypeDate', alias: 'Observed', length: 8, nullable: true, editable: true },
+    { name: 'notes', type: 'esriFieldTypeString', alias: 'Notes', length: 10000, nullable: true, editable: true },
+    { name: 'tags', type: 'esriFieldTypeString', alias: 'Tags', length: 1000, nullable: true, editable: true },
+    { name: 'accuracy_m', type: 'esriFieldTypeDouble', alias: 'Accuracy (m)', nullable: true, editable: true }
+  ];
+  const WORLD = { xmin: -180, ymin: -90, xmax: 180, ymax: 90, spatialReference: { wkid: 4326 } };
+
+  async function agoCreateLayer() {
+    const d = new Date();
+    const name = `Fieldnotes_${dayKey(d).replace(/-/g, '')}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    const svc = await agoPost(`${AGO}/content/users/${encodeURIComponent(ago.username)}/createService`, {
+      outputType: 'featureService',
+      createParameters: JSON.stringify({
+        name, serviceDescription: 'Notes synced from the Fieldnotes app', hasStaticData: false, maxRecordCount: 2000,
+        supportedQueryFormats: 'JSON', capabilities: 'Create,Delete,Query,Update,Editing',
+        spatialReference: { wkid: 4326 }, initialExtent: WORLD, allowGeometryUpdates: true, units: 'esriDecimalDegrees'
+      })
+    });
+    if (!svc.serviceurl) throw new Error('ArcGIS did not create the layer');
+    await agoPost(svc.serviceurl.replace('/rest/services/', '/rest/admin/services/') + '/addToDefinition', {
+      addToDefinition: JSON.stringify({ layers: [{
+        id: 0, name: 'Fieldnotes', type: 'Feature Layer', geometryType: 'esriGeometryPoint',
+        objectIdField: 'OBJECTID', globalIdField: 'GlobalID', hasAttachments: true, fields: AGO_FIELDS, extent: WORLD,
+        capabilities: 'Create,Delete,Query,Update,Editing', displayField: 'notes',
+        drawingInfo: { renderer: { type: 'simple', symbol: { type: 'esriSMS', style: 'esriSMSCircle', color: [53, 87, 60, 255], size: 9,
+          outline: { color: [255, 255, 255, 255], width: 1 } } } }
+      }] })
+    });
+    // A new layer means nothing has been synced to it yet.
+    notes.forEach(n => { delete n.arcgis; }); saveNotes();
+    Object.assign(ago, { serviceUrl: svc.serviceurl, itemId: svc.itemId, layerName: name, pendingDeletes: [] }); saveAgo();
+  }
+
+  const agoFeature = n => ({
+    geometry: { x: n.loc.lon, y: n.loc.lat, spatialReference: { wkid: 4326 } },
+    attributes: { note_id: n.id, observed: Date.parse(n.created), notes: n.text.slice(0, 10000), tags: n.tags.join(', '), accuracy_m: n.loc.acc,
+      ...(n.arcgis ? { OBJECTID: n.arcgis.oid } : {}) }
+  });
+
+  let agoBusy = false;
+  async function agoSync(progress) {
+    if (agoBusy) return;
+    agoBusy = true;
+    try {
+      if (!ago.serviceUrl) { progress('Creating your Fieldnotes layer…'); await agoCreateLayer(); }
+      const layer = ago.serviceUrl + '/0';
+      if (ago.pendingDeletes.length) {
+        progress('Removing deleted notes…');
+        await agoPost(layer + '/deleteFeatures', { objectIds: ago.pendingDeletes.join(',') });
+        ago.pendingDeletes = []; saveAgo();
+      }
+      const located = notes.filter(n => n.loc);
+      const adds = located.filter(n => !n.arcgis);
+      const updates = located.filter(n => n.arcgis && n.updated > n.arcgis.synced);
+      for (let i = 0; i < adds.length; i += 100) {
+        const batch = adds.slice(i, i + 100);
+        progress(`Adding notes ${i + 1}–${i + batch.length} of ${adds.length}…`);
+        const r = await agoPost(layer + '/addFeatures', { features: JSON.stringify(batch.map(agoFeature)) });
+        r.addResults.forEach((res, k) => { if (res.success) batch[k].arcgis = { oid: res.objectId, synced: batch[k].updated, media: [] }; });
+        saveNotes();
+      }
+      if (updates.length) {
+        progress(`Updating ${plural(updates.length, 'edited note')}…`);
+        const r = await agoPost(layer + '/updateFeatures', { features: JSON.stringify(updates.map(agoFeature)) });
+        r.updateResults.forEach((res, k) => { if (res.success) updates[k].arcgis.synced = updates[k].updated; });
+        saveNotes();
+      }
+      const pending = notes.filter(n => n.arcgis).flatMap(n => [...n.photos, ...n.audio]
+        .filter(id => !n.arcgis.media.includes(id)).map(id => ({ n, id })));
+      const media = await collectMedia(notes.filter(n => n.arcgis));
+      for (const [k, { n, id }] of pending.entries()) {
+        progress(`Uploading attachment ${k + 1} of ${pending.length}…`);
+        const r = await mediaGet(id).catch(() => null);
+        const p = media.paths.get(id);
+        if (!r || !p) continue;
+        await agoPost(`${layer}/${n.arcgis.oid}/addAttachment`, {}, { blob: r.blob, name: p.path.split('/').pop() });
+        n.arcgis.media.push(id); saveNotes();
+      }
+      const skipped = notes.length - located.length;
+      ago.lastSync = Date.now(); saveAgo();
+      return `Synced ${plural(located.length, 'note')}` + (skipped ? ` · ${skipped} without a location skipped` : '');
+    } finally { agoBusy = false; render(); }
+  }
+
+  const agoDlg = $('agoDlg');
+  $('agoRedirect').textContent = REDIRECT;
+  $('agoCopyRedirect').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(REDIRECT); toast('Copied'); } catch { toast(REDIRECT); }
+  });
+  $('agoCancel').addEventListener('click', () => agoDlg.close());
+  $('agoGo').addEventListener('click', () => {
+    const id = $('agoClientId').value.trim();
+    if (!/^[A-Za-z0-9]{8,}$/.test(id)) { toast('That doesn’t look like a Client ID'); return; }
+    ago.clientId = id; saveAgo(); agoSignIn();
+  });
+
+  // ---------- iNaturalist ----------
+  // Uses the personal API token from inaturalist.org/users/api_token (valid
+  // 24 h). Registering a full OAuth app needs an iNat account that meets
+  // their app-owner requirements, so this keeps setup to a copy and paste.
+  const INAT = 'https://api.inaturalist.org/v1';
+  const INAT_KEY = 'fieldnotes.inat';
+  const inat = load(INAT_KEY, {});
+  const saveInat = () => store(INAT_KEY, inat);
+  const inatLive = () => !!inat.token && (!inat.exp || inat.exp > Date.now());
+
+  function parseInatToken(raw) {
+    raw = raw.trim();
+    try { const j = JSON.parse(raw); if (j.api_token) raw = j.api_token; } catch {}
+    const m = raw.match(/[\w-]+\.[\w-]+\.[\w-]+/);
+    if (!m) return null;
+    let exp = null;
+    try { const p = JSON.parse(atob(m[0].split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); if (p.exp) exp = p.exp * 1000; } catch {}
+    return { token: m[0], exp };
+  }
+
+  async function inatFetch(path, opts = {}) {
+    const res = await fetch(INAT + path, { ...opts, headers: { ...(opts.headers || {}), ...(opts.auth === false ? {} : { Authorization: inat.token }) } });
+    const j = await res.json().catch(() => null);
+    if (res.status === 401) throw new Error('Your iNaturalist token has expired — paste a new one');
+    if (!res.ok) {
+      const e = j && j.error;
+      throw new Error((e && e.original && e.original.error) || (typeof e === 'string' ? e : '') || `iNaturalist error ${res.status}`);
+    }
+    return j;
+  }
+
+  const inatDlg = $('inatDlg');
+  $('inatCancel').addEventListener('click', () => inatDlg.close());
+  $('inatGo').addEventListener('click', async () => {
+    const t = parseInatToken($('inatToken').value);
+    if (!t) { toast('Paste the whole token from the api_token page'); return; }
+    if (t.exp && t.exp < Date.now()) { toast('That token has already expired — reload the page for a new one'); return; }
+    const prev = { ...inat };
+    Object.assign(inat, t);
+    try {
+      const me = await inatFetch('/users/me');
+      inat.login = me.results && me.results[0] && me.results[0].login;
+      saveInat(); inatDlg.close(); $('inatToken').value = '';
+      toast(`Connected to iNaturalist as ${inat.login}`); renderConnections();
+      if (inatAfterConnect) { const id = inatAfterConnect; inatAfterConnect = null; openInatPost(id); }
+    } catch (e) { Object.assign(inat, prev); toast(e.message.includes('expired') ? 'iNaturalist didn’t accept that token' : e.message); }
+  });
+  let inatAfterConnect = null;
+
+  // Post a note as an iNaturalist observation.
+  const inatPostDlg = $('inatPostDlg');
+  let inatNote = null, inatTaxon = null, taxaTimer = null;
+  function openInatPost(id) {
+    const n = notes.find(x => x.id === id); if (!n) return;
+    if (!inatLive()) { inatAfterConnect = id; inatDlg.showModal(); return; }
+    inatNote = n; inatTaxon = null;
+    $('inatSpecies').value = ''; $('inatTaxa').replaceChildren(); $('inatPicked').textContent = '';
+    $('inatDesc').value = n.text;
+    $('inatPhotosRow').hidden = !n.photos.length; $('inatPhotos').checked = true;
+    $('inatPhotosLabel').textContent = `Include ${plural(n.photos.length, 'photo')}`;
+    $('inatSoundsRow').hidden = !n.audio.length; $('inatSounds').checked = true;
+    $('inatSoundsLabel').textContent = `Include ${plural(n.audio.length, 'voice memo')} as sounds`;
+    $('inatObscure').checked = false;
+    $('inatPostMeta').textContent = `${fmtDay(new Date(n.created))} · ${fmtTime(new Date(n.created))}` +
+      (n.loc ? ` · ${fmtCoord(n.loc)}` : ' · no location (iNaturalist will mark it “casual”)');
+    $('inatPostGo').disabled = false;
+    inatPostDlg.showModal();
+  }
+  $('inatSpecies').addEventListener('input', () => {
+    inatTaxon = null; $('inatPicked').textContent = '';
+    clearTimeout(taxaTimer);
+    const q = $('inatSpecies').value.trim();
+    if (q.length < 2) { $('inatTaxa').replaceChildren(); return; }
+    taxaTimer = setTimeout(async () => {
+      try {
+        const j = await inatFetch(`/taxa/autocomplete?q=${encodeURIComponent(q)}&per_page=6`, { auth: false });
+        if ($('inatSpecies').value.trim() !== q) return;
+        $('inatTaxa').replaceChildren(...j.results.map(t => {
+          const b = el('button', 'taxon'); b.type = 'button';
+          b.append(el('span', null, t.preferred_common_name || t.name), el('em', null, ` ${t.name}`));
+          b.addEventListener('click', () => {
+            inatTaxon = t; $('inatSpecies').value = t.preferred_common_name || t.name;
+            $('inatPicked').textContent = `✓ ${t.rank} ${t.name}`; $('inatTaxa').replaceChildren();
+          });
+          return b;
+        }));
+      } catch { /* offline: free-text guess still works */ }
+    }, 250);
+  });
+  $('inatPostCancel').addEventListener('click', () => inatPostDlg.close());
+  $('inatPostGo').addEventListener('click', async () => {
+    const n = inatNote; if (!n) return;
+    const btn = $('inatPostGo'); btn.disabled = true; btn.textContent = 'Posting…';
+    const problems = [];
+    try {
+      const guess = $('inatSpecies').value.trim();
+      const observation = {
+        description: $('inatDesc').value.trim(), observed_on_string: n.created,
+        ...(guess ? { species_guess: guess } : {}), ...(inatTaxon ? { taxon_id: inatTaxon.id } : {}),
+        ...(n.loc ? { latitude: n.loc.lat, longitude: n.loc.lon, positional_accuracy: n.loc.acc } : {}),
+        ...(n.tags.length ? { tag_list: n.tags.join(',') } : {}),
+        ...($('inatObscure').checked ? { geoprivacy: 'obscured' } : {})
+      };
+      const o = await inatFetch('/observations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ observation }) });
+      const obsId = o.id || (o.results && o.results[0] && o.results[0].id);
+      if (!obsId) throw new Error('iNaturalist didn’t return an observation');
+      n.inat = { id: obsId, url: `https://www.inaturalist.org/observations/${obsId}` }; saveNotes();
+      const media = await collectMedia([n]);
+      const upload = async (ids, endpoint, field) => {
+        for (const id of ids) {
+          const r = await mediaGet(id).catch(() => null), p = media.paths.get(id);
+          if (!r || !p) continue;
+          btn.textContent = `Uploading ${p.path.split('/')[0] === 'photos' ? 'photo' : 'sound'}…`;
+          const fd = new FormData();
+          fd.append(`${field}[observation_id]`, obsId);
+          fd.append('file', r.blob, p.path.split('/').pop());
+          try { await inatFetch(endpoint, { method: 'POST', body: fd }); }
+          catch (e) { problems.push(e.message); }
+        }
+      };
+      if ($('inatPhotos').checked) await upload(n.photos, '/observation_photos', 'observation_photo');
+      if ($('inatSounds').checked) await upload(n.audio, '/observation_sounds', 'observation_sound');
+      inatPostDlg.close(); editDlg.close(); render();
+      toast(problems.length ? `Posted, but ${plural(problems.length, 'file')} failed: ${problems[0]}` : 'Posted to iNaturalist');
+    } catch (e) {
+      toast(e.message);
+      if (/expired/.test(e.message)) { delete inat.token; saveInat(); renderConnections(); }
+    } finally { btn.disabled = false; btn.textContent = 'Post'; }
+  });
+
+  // ---------- connections panel (in the Export dialog) ----------
+  function renderConnections() {
+    const located = notes.filter(n => n.loc);
+    const synced = located.filter(n => n.arcgis && n.updated <= n.arcgis.synced).length;
+    if (!ago.clientId || !agoSignedIn()) {
+      $('agoStatus').textContent = ago.clientId ? 'Signed out' : 'Not set up';
+      actionButtons($('agoActions'), [[ago.clientId ? 'Sign in' : 'Set up', () => {
+        if (ago.clientId) agoSignIn(); else { $('agoClientId').value = ''; agoDlg.showModal(); }
+      }, true], ...(ago.clientId ? [['Change ID', () => { $('agoClientId').value = ago.clientId; agoDlg.showModal(); }]] : [])]);
+    } else {
+      $('agoStatus').textContent = `Signed in as ${ago.username}` +
+        (ago.serviceUrl ? ` · ${synced} of ${located.length} located notes synced to ${ago.layerName}` : ' · a layer is created on first sync');
+      actionButtons($('agoActions'), [
+        ['Sync now', async e => {
+          const b = e.currentTarget; b.disabled = true;
+          try { toast(await agoSync(msg => { $('agoStatus').textContent = msg; })); }
+          catch (err) { toast(err.message); }
+          finally { b.disabled = false; renderConnections(); }
+        }, true],
+        ...(ago.itemId ? [['Open layer', () => window.open(`https://www.arcgis.com/home/item.html?id=${ago.itemId}`, '_blank', 'noopener')]] : []),
+        ['Sign out', () => {
+          if (!confirm('Sign out of ArcGIS? Your layer stays in ArcGIS Online, and signing back in continues syncing to it.')) return;
+          ['token', 'expires', 'refresh', 'refreshExpires'].forEach(k => delete ago[k]); saveAgo(); renderConnections();
+        }]
+      ]);
+    }
+    if (inatLive()) {
+      $('inatStatus').textContent = `Connected as ${inat.login}` + (inat.exp ? ` · token good for ${fmtWhen(inat.exp - Date.now())}` : '');
+      actionButtons($('inatActions'), [['Disconnect', () => { delete inat.token; delete inat.exp; saveInat(); renderConnections(); }]]);
+    } else {
+      $('inatStatus').textContent = inat.login ? 'Token expired — paste a new one to post' : 'Not connected';
+      actionButtons($('inatActions'), [[inat.login ? 'Reconnect' : 'Connect', () => { inatAfterConnect = null; inatDlg.showModal(); }, true]]);
+    }
+  }
+  $('exportBtn').addEventListener('click', renderConnections);
+  agoFinishSignIn();
 
   // ---------- install hint & offline ----------
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);

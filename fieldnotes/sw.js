@@ -1,6 +1,6 @@
 // Offline support. Pages load from the network when possible so updates show up
 // right away, falling back to the cache offline; other files are cache-first.
-const CACHE = 'fieldnotes-v4';
+const CACHE = 'fieldnotes-v5';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -19,7 +19,9 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
+  // Only the app's own files. API calls (ArcGIS, iNaturalist) carry sign-in
+  // tokens and must never be served from or stored in this cache.
+  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
     caches.open(CACHE).then(async cache => {
       const cached = await cache.match(e.request, { ignoreSearch: true });
