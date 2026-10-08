@@ -1,10 +1,13 @@
 // Offline support. Pages load from the network when possible so updates show up
 // right away, falling back to the cache offline; other files are cache-first.
-const CACHE = 'fieldnotes-v2';
+const CACHE = 'fieldnotes-v3';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // 'reload' skips the browser's HTTP cache, so a new version never caches stale files.
+  e.waitUntil(caches.open(CACHE)
+    .then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -20,7 +23,8 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     caches.open(CACHE).then(async cache => {
       const cached = await cache.match(e.request, { ignoreSearch: true });
-      const network = fetch(e.request)
+      // 'no-cache' revalidates with the server instead of trusting a 10-minute-old copy.
+      const network = fetch(e.request, { cache: 'no-cache' })
         .then(res => { if (res.ok) cache.put(e.request, res.clone()); return res; });
       network.catch(() => {});
       if (e.request.mode === 'navigate') {
