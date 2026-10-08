@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#35573c">
+<meta name="description" content="Quick, offline fieldnote capture with time and location stamps.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fieldnotes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png" type="image/png">
+<title>Fieldnotes</title>
+<style>
+  :root {
+    --paper:   #efe7d3;
+    --paper-2: #e6dcc2;
+    --card:    #f7f2e4;
+    --ink:     #232b21;
+    --ink-2:   #4a4939;
+    --muted:   #726b57;
+    --line:    #d3c7a4;
+    --forest:  #35573c;
+    --forest-2:#284530;
+    --on-forest:#f7f2e4;
+    --contour: #9c7040;
+    --water:   #2f6a85;
+    --danger:  #9a3b2e;
+    --shadow:  0 1px 2px rgba(35,43,33,.06), 0 6px 18px rgba(35,43,33,.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:   #171b15;
+      --paper-2: #1e231b;
+      --card:    #20261d;
+      --ink:     #e9e2c9;
+      --ink-2:   #c9c2a8;
+      --muted:   #9b9480;
+      --line:    #333a2c;
+      --forest:  #7bab7e;
+      --forest-2:#8fc192;
+      --on-forest:#14180f;
+      --contour: #c99a65;
+      --water:   #6fabc4;
+      --danger:  #e08a7a;
+      --shadow:  0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:   #171b15;
+    --paper-2: #1e231b;
+    --card:    #20261d;
+    --ink:     #e9e2c9;
+    --ink-2:   #c9c2a8;
+    --muted:   #9b9480;
+    --line:    #333a2c;
+    --forest:  #7bab7e;
+    --forest-2:#8fc192;
+    --on-forest:#14180f;
+    --contour: #c99a65;
+    --water:   #6fabc4;
+    --danger:  #e08a7a;
+    --shadow:  0 1px 2px rgba(0,0,0,.35), 0 6px 18px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .serif { font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif; }
+  .mono  { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px 48px; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 16px 0 12px;
+  }
+  header h1 { margin: 0; font-size: 1.6rem; font-weight: 600; letter-spacing: -.01em; }
+  header .count { color: var(--muted); font-size: .85rem; }
+
+  button, input, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+
+  .btn {
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    border-radius: 10px; padding: 8px 14px; min-height: 44px;
+  }
+  .btn.primary { background: var(--forest); border-color: var(--forest); color: var(--on-forest); font-weight: 600; }
+  .btn.primary:active { background: var(--forest-2); }
+  .btn.danger { color: var(--danger); }
+  .btn:disabled { opacity: .5; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow);
+  }
+
+  /* Composer */
+  .composer { padding: 12px; }
+  .composer textarea {
+    width: 100%; min-height: 120px; resize: vertical;
+    border: 0; outline: none; background: transparent;
+    font-size: 17px; line-height: 1.5;
+  }
+  .composer textarea::placeholder { color: var(--muted); }
+  .tags-input {
+    width: 100%; border: 0; border-top: 1px dashed var(--line); background: transparent;
+    padding: 10px 2px; outline: none; font-size: 15px;
+  }
+  .composer-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
+  .toggle {
+    display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: .9rem;
+    min-height: 44px; user-select: none;
+  }
+  .toggle input { width: 20px; height: 20px; accent-color: var(--forest); margin: 0; }
+  .gps-status { font-size: .78rem; color: var(--muted); }
+
+  /* Search */
+  .search { margin: 18px 0 6px; position: relative; }
+  .search input {
+    width: 100%; border: 1px solid var(--line); background: var(--paper-2);
+    border-radius: 10px; padding: 10px 36px 10px 12px; outline: none; font-size: 16px;
+  }
+  .search input:focus, .tags-input:focus { border-color: var(--forest); }
+  .search .clear {
+    position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    border: 0; background: none; color: var(--muted); width: 36px; height: 36px; font-size: 18px;
+  }
+
+  /* Notes list */
+  .day { margin: 22px 0 8px; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--contour); font-weight: 600; }
+  .note { padding: 12px 14px; margin-bottom: 10px; }
+  .note-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .note-time { font-size: .82rem; color: var(--muted); }
+  .note-edit { border: 0; background: none; color: var(--forest); font-size: .85rem; padding: 6px 4px; min-height: 32px; }
+  .note-text { white-space: pre-wrap; word-wrap: break-word; margin: 4px 0 6px; }
+  .note-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .chip {
+    border: 1px solid var(--line); background: var(--paper-2); color: var(--ink-2);
+    border-radius: 999px; padding: 2px 10px; font-size: .78rem;
+  }
+  .loc { font-size: .78rem; color: var(--water); text-decoration: none; }
+  .loc.off { color: var(--muted); }
+
+  .empty { text-align: center; color: var(--muted); padding: 40px 16px; }
+  .empty .serif { font-size: 1.2rem; color: var(--ink-2); }
+
+  .banner {
+    margin: 4px 0 12px; padding: 10px 12px; font-size: .88rem; color: var(--ink-2);
+    background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .banner p { margin: 0; flex: 1; }
+  .banner button { border: 0; background: none; color: var(--muted); font-size: 18px; padding: 0 4px; }
+
+  footer { text-align: center; color: var(--muted); font-size: .78rem; margin-top: 28px; }
+  footer a { color: inherit; }
+
+  /* Dialogs */
+  dialog {
+    border: 1px solid var(--line); border-radius: 16px; padding: 0;
+    background: var(--card); color: var(--ink);
+    width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px);
+    box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  }
+  dialog::backdrop { background: rgba(20,24,18,.45); }
+  .dlg { padding: 16px; }
+  .dlg h2 { margin: 0 0 4px; font-size: 1.2rem; }
+  .dlg .sub { color: var(--muted); font-size: .85rem; margin: 0 0 12px; }
+  .dlg textarea {
+    width: 100%; min-height: 180px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--paper); padding: 10px; font-size: 17px; outline: none; resize: vertical;
+  }
+  .dlg input[type=text] {
+    width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--paper);
+    padding: 10px; margin-top: 8px; outline: none; font-size: 16px;
+  }
+  .dlg-actions { display: flex; gap: 8px; justify-content: space-between; margin-top: 14px; flex-wrap: wrap; }
+  .dlg-actions .right { display: flex; gap: 8px; margin-left: auto; }
+  .export-list { display: grid; gap: 8px; }
+  .export-list .btn { text-align: left; display: flex; flex-direction: column; align-items: flex-start; padding: 10px 14px; }
+  .export-list .btn small { color: var(--muted); font-size: .78rem; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none;
+    background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 999px;
+    font-size: .9rem; transition: opacity .2s, transform .2s; max-width: calc(100vw - 32px);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 class="serif">Fieldnotes</h1>
+      <div class="count" id="count"></div>
+    </div>
+    <button class="btn" id="exportBtn">Export</button>
+  </header>
+
+  <div class="banner" id="installBanner" hidden>
+    <p>Use it like an app: tap <strong>Share</strong> in Safari, then <strong>Add to Home Screen</strong>. It works offline once it's there.</p>
+    <button aria-label="Dismiss" id="installDismiss">×</button>
+  </div>
+
+  <section class="card composer">
+    <textarea id="noteText" placeholder="What are you observing?" aria-label="New note"></textarea>
+    <input class="tags-input" id="noteTags" type="text" placeholder="Tags, separated by commas" autocapitalize="none" autocomplete="off" aria-label="Tags">
+    <div class="composer-bar">
+      <div>
+        <label class="toggle"><input type="checkbox" id="gpsToggle"> Stamp location</label>
+        <div class="gps-status" id="gpsStatus"></div>
+      </div>
+      <button class="btn primary" id="saveBtn" disabled>Save note</button>
+    </div>
+  </section>
+
+  <div class="search">
+    <input type="search" id="search" placeholder="Search notes or #tag" aria-label="Search notes" autocapitalize="none">
+    <button class="clear" id="searchClear" aria-label="Clear search" hidden>×</button>
+  </div>
+
+  <main id="list"></main>
+
+  <footer>Notes are stored only on this device. Export a backup now and then.<br><a href="/">noahmschiff.com</a></footer>
+</div>
+
+<dialog id="editDlg">
+  <form method="dialog" class="dlg" id="editForm">
+    <h2 class="serif">Edit note</h2>
+    <p class="sub" id="editMeta"></p>
+    <textarea id="editText" aria-label="Note text"></textarea>
+    <input type="text" id="editTags" placeholder="Tags, separated by commas" autocapitalize="none" autocomplete="off" aria-label="Tags">
+    <div class="dlg-actions">
+      <button type="button" class="btn danger" id="deleteBtn">Delete</button>
+      <div class="right">
+        <button type="button" class="btn" id="editCancel">Cancel</button>
+        <button type="submit" class="btn primary" value="save">Save</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="exportDlg">
+  <div class="dlg">
+    <h2 class="serif">Export</h2>
+    <p class="sub" id="exportSub"></p>
+    <div class="export-list">
+      <button class="btn" data-fmt="md">Markdown (.md)<small>Readable notes grouped by day, for writing up</small></button>
+      <button class="btn" data-fmt="csv">Spreadsheet (.csv)<small>One row per note, opens in Excel or Sheets</small></button>
+      <button class="btn" data-fmt="geojson">GeoJSON (.geojson)<small>Located notes as points for QGIS or ArcGIS</small></button>
+      <button class="btn" data-fmt="json">Backup (.json)<small>Everything, to restore later or on another device</small></button>
+      <button class="btn" id="importBtn">Restore from backup…<small>Adds notes from a .json backup and skips duplicates</small></button>
+    </div>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+    <div class="dlg-actions"><div class="right"><button class="btn" id="exportClose">Done</button></div></div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  const KEY = 'fieldnotes.v1';
+  const PREFS = 'fieldnotes.prefs';
+  const DRAFT = 'fieldnotes.draft';
+  const $ = id => document.getElementById(id);
+
+  // ---------- storage ----------
+  const load = (k, fallback) => {
+    try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }
+    catch { return fallback; }
+  };
+  const store = (k, v) => {
+    try { localStorage.setItem(k, JSON.stringify(v)); return true; }
+    catch { toast('Could not save — storage is full or blocked'); return false; }
+  };
+
+  let notes = load(KEY, []);
+  const prefs = load(PREFS, { gps: false, hideInstall: false });
+  // A location lookup interrupted by closing the app can't finish later.
+  notes.forEach(n => { if (n.locStatus === 'pending') n.locStatus = 'unavailable'; });
+  const saveNotes = () => store(KEY, notes);
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+  // ---------- helpers ----------
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const parseTags = s => [...new Set(s.split(',').map(t => t.trim().replace(/^#/, '').toLowerCase()).filter(Boolean))];
+  const pad = n => String(n).padStart(2, '0');
+  const dayKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const fmtDay = d => {
+    const today = new Date(); const y = new Date(); y.setDate(today.getDate() - 1);
+    if (dayKey(d) === dayKey(today)) return 'Today';
+    if (dayKey(d) === dayKey(y)) return 'Yesterday';
+    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  };
+  const fmtTime = d => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const fmtCoord = l => `${l.lat.toFixed(5)}, ${l.lon.toFixed(5)}`;
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  // ---------- location ----------
+  // Warm up a fix while the user is typing so it's ready the moment they save.
+  let lastFix = null;
+  let watchId = null;
+  const gpsStatus = $('gpsStatus');
+
+  function startWatch() {
+    if (!prefs.gps || watchId !== null || !navigator.geolocation) return;
+    gpsStatus.textContent = 'Finding location…';
+    watchId = navigator.geolocation.watchPosition(
+      p => {
+        lastFix = { lat: p.coords.latitude, lon: p.coords.longitude, acc: Math.round(p.coords.accuracy), t: Date.now() };
+        gpsStatus.textContent = `Ready · ±${lastFix.acc} m`;
+      },
+      err => {
+        gpsStatus.textContent = err.code === 1 ? 'Location permission denied' : 'Location unavailable';
+        stopWatch();
+      },
+      { enableHighAccuracy: true, maximumAge: 15000, timeout: 30000 }
+    );
+  }
+  function stopWatch() {
+    if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+  function freshFix() { return lastFix && Date.now() - lastFix.t < 120000 ? lastFix : null; }
+
+  function locateNote(note) {
+    const fix = freshFix();
+    if (fix) { note.loc = { lat: fix.lat, lon: fix.lon, acc: fix.acc }; note.locStatus = 'ok'; return; }
+    note.locStatus = 'pending';
+    navigator.geolocation.getCurrentPosition(
+      p => {
+        note.loc = { lat: p.coords.latitude, lon: p.coords.longitude, acc: Math.round(p.coords.accuracy) };
+        note.locStatus = 'ok'; saveNotes(); render();
+      },
+      err => { note.locStatus = err.code === 1 ? 'denied' : 'unavailable'; saveNotes(); render(); },
+      { enableHighAccuracy: true, maximumAge: 30000, timeout: 20000 }
+    );
+  }
+
+  const gpsToggle = $('gpsToggle');
+  gpsToggle.checked = !!prefs.gps;
+  gpsToggle.addEventListener('change', () => {
+    prefs.gps = gpsToggle.checked; store(PREFS, prefs);
+    if (prefs.gps) startWatch(); else { stopWatch(); gpsStatus.textContent = ''; }
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopWatch(); else if (document.activeElement === $('noteText')) startWatch();
+  });
+
+  // ---------- composer ----------
+  const noteText = $('noteText'), noteTags = $('noteTags'), saveBtn = $('saveBtn');
+  const draft = load(DRAFT, null);
+  if (draft) { noteText.value = draft.text || ''; noteTags.value = draft.tags || ''; }
+  const syncSave = () => { saveBtn.disabled = !noteText.value.trim(); };
+  syncSave();
+  [noteText, noteTags].forEach(i => i.addEventListener('input', () => {
+    syncSave(); store(DRAFT, { text: noteText.value, tags: noteTags.value });
+  }));
+  noteText.addEventListener('focus', startWatch);
+
+  saveBtn.addEventListener('click', () => {
+    const text = noteText.value.trim();
+    if (!text) return;
+    const now = new Date().toISOString();
+    const note = { id: uid(), created: now, updated: now, text, tags: parseTags(noteTags.value), loc: null, locStatus: null };
+    if (prefs.gps && navigator.geolocation) locateNote(note);
+    notes.unshift(note);
+    if (!saveNotes()) { notes.shift(); return; }
+    noteText.value = ''; noteTags.value = '';
+    try { localStorage.removeItem(DRAFT); } catch {}
+    syncSave(); render();
+    toast('Saved');
+  });
+
+  // ---------- list ----------
+  const search = $('search'), searchClear = $('searchClear');
+  search.addEventListener('input', () => { searchClear.hidden = !search.value; render(); });
+  searchClear.addEventListener('click', () => { search.value = ''; searchClear.hidden = true; render(); });
+
+  function matches(n, q) {
+    if (!q) return true;
+    return q.split(/\s+/).every(term => {
+      if (term.startsWith('#')) { const t = term.slice(1); return !t || n.tags.some(x => x.startsWith(t)); }
+      return n.text.toLowerCase().includes(term) || n.tags.some(x => x.includes(term));
+    });
+  }
+
+  function locNode(n) {
+    if (n.loc) {
+      const a = el('a', 'loc', `📍 ${fmtCoord(n.loc)} ±${n.loc.acc} m`);
+      a.href = `https://maps.apple.com/?ll=${n.loc.lat},${n.loc.lon}&q=Fieldnote`;
+      a.target = '_blank'; a.rel = 'noopener';
+      return a;
+    }
+    const msg = { pending: 'Locating…', denied: 'Location denied', unavailable: 'No location' }[n.locStatus];
+    return msg ? el('span', 'loc off', msg) : null;
+  }
+
+  function render() {
+    const q = search.value.trim().toLowerCase();
+    const shown = notes.filter(n => matches(n, q));
+    $('count').textContent = notes.length === 1 ? '1 note' : `${notes.length} notes`;
+    const list = $('list'); list.replaceChildren();
+
+    if (!shown.length) {
+      const e = el('div', 'empty');
+      e.append(el('div', 'serif', notes.length ? 'No matching notes' : 'No notes yet'));
+      e.append(el('div', null, notes.length ? 'Try a different word or tag.' : 'Your first observation will show up here, stamped with the time.'));
+      list.append(e); return;
+    }
+
+    let lastDay = null;
+    for (const n of shown) {
+      const d = new Date(n.created);
+      if (dayKey(d) !== lastDay) { lastDay = dayKey(d); list.append(el('div', 'day', fmtDay(d))); }
+
+      const card = el('article', 'card note');
+      const head = el('div', 'note-head');
+      head.append(el('span', 'note-time mono', fmtTime(d)));
+      const edit = el('button', 'note-edit', 'Edit');
+      edit.addEventListener('click', () => openEdit(n.id));
+      head.append(edit);
+      card.append(head, el('div', 'note-text', n.text));
+
+      const meta = el('div', 'note-meta');
+      n.tags.forEach(t => {
+        const c = el('button', 'chip', '#' + t);
+        c.addEventListener('click', () => { search.value = '#' + t; searchClear.hidden = false; render(); window.scrollTo({ top: search.offsetTop - 12 }); });
+        meta.append(c);
+      });
+      const loc = locNode(n); if (loc) meta.append(loc);
+      if (meta.childNodes.length) card.append(meta);
+      list.append(card);
+    }
+  }
+
+  // ---------- edit ----------
+  const editDlg = $('editDlg');
+  let editingId = null;
+  function openEdit(id) {
+    const n = notes.find(x => x.id === id); if (!n) return;
+    editingId = id;
+    const d = new Date(n.created);
+    $('editMeta').textContent = `${fmtDay(d)} · ${fmtTime(d)}` + (n.loc ? ` · ${fmtCoord(n.loc)}` : '');
+    $('editText').value = n.text;
+    $('editTags').value = n.tags.join(', ');
+    editDlg.showModal();
+  }
+  $('editForm').addEventListener('submit', e => {
+    const n = notes.find(x => x.id === editingId);
+    const text = $('editText').value.trim();
+    if (!n) return;
+    if (!text) { e.preventDefault(); toast('A note needs some text — use Delete to remove it'); return; }
+    n.text = text; n.tags = parseTags($('editTags').value); n.updated = new Date().toISOString();
+    saveNotes(); render(); toast('Updated');
+  });
+  $('editCancel').addEventListener('click', () => editDlg.close());
+  $('deleteBtn').addEventListener('click', () => {
+    if (!confirm('Delete this note? This cannot be undone.')) return;
+    notes = notes.filter(x => x.id !== editingId);
+    saveNotes(); editDlg.close(); render(); toast('Deleted');
+  });
+
+  // ---------- export / import ----------
+  const exportDlg = $('exportDlg');
+  $('exportBtn').addEventListener('click', () => {
+    const located = notes.filter(n => n.loc).length;
+    $('exportSub').textContent = `${notes.length} notes, ${located} with location.`;
+    exportDlg.showModal();
+  });
+  $('exportClose').addEventListener('click', () => exportDlg.close());
+
+  const chrono = () => [...notes].sort((a, b) => a.created.localeCompare(b.created));
+  const stamp = () => { const d = new Date(); return `${dayKey(d)}_${pad(d.getHours())}${pad(d.getMinutes())}`; };
+  const csvCell = v => /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+
+  const formats = {
+    md() {
+      let out = '# Fieldnotes\n';
+      let day = null;
+      for (const n of chrono()) {
+        const d = new Date(n.created);
+        if (dayKey(d) !== day) { day = dayKey(d); out += `\n## ${d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n`; }
+        out += `\n### ${fmtTime(d)}` + (n.loc ? ` — ${fmtCoord(n.loc)} (±${n.loc.acc} m)` : '') + '\n\n';
+        out += n.text + '\n';
+        if (n.tags.length) out += '\n' + n.tags.map(t => '#' + t).join(' ') + '\n';
+      }
+      return { body: out, type: 'text/markdown', ext: 'md' };
+    },
+    csv() {
+      const rows = [['id', 'date', 'time', 'latitude', 'longitude', 'accuracy_m', 'tags', 'text']];
+      for (const n of chrono()) {
+        const d = new Date(n.created);
+        rows.push([n.id, dayKey(d), `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+          n.loc ? String(n.loc.lat) : '', n.loc ? String(n.loc.lon) : '', n.loc ? String(n.loc.acc) : '',
+          n.tags.join('; '), n.text]);
+      }
+      // BOM so Excel reads accented characters correctly.
+      return { body: '﻿' + rows.map(r => r.map(csvCell).join(',')).join('\r\n'), type: 'text/csv', ext: 'csv' };
+    },
+    geojson() {
+      const features = chrono().filter(n => n.loc).map(n => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [n.loc.lon, n.loc.lat] },
+        properties: { id: n.id, created: n.created, accuracy_m: n.loc.acc, tags: n.tags.join(', '), text: n.text }
+      }));
+      if (!features.length) { toast('No notes have a location yet'); return null; }
+      return { body: JSON.stringify({ type: 'FeatureCollection', features }, null, 2), type: 'application/geo+json', ext: 'geojson' };
+    },
+    json() {
+      return { body: JSON.stringify({ app: 'fieldnotes', version: 1, exported: new Date().toISOString(), notes }, null, 2), type: 'application/json', ext: 'json' };
+    }
+  };
+
+  async function deliver({ body, type, ext }) {
+    const name = `fieldnotes_${stamp()}.${ext}`;
+    const file = new File([body], name, { type });
+    // On iPhone the share sheet is the reliable way out: Save to Files, AirDrop, Mail…
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: name }); return; }
+      catch (e) { if (e.name === 'AbortError') return; }
+    }
+    const url = URL.createObjectURL(file);
+    const a = el('a'); a.href = url; a.download = name;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  document.querySelectorAll('[data-fmt]').forEach(b => b.addEventListener('click', () => {
+    if (!notes.length) { toast('Nothing to export yet'); return; }
+    const out = formats[b.dataset.fmt](); if (out) deliver(out);
+  }));
+
+  $('importBtn').addEventListener('click', () => $('importFile').click());
+  $('importFile').addEventListener('change', async e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      const incoming = Array.isArray(data) ? data : data.notes;
+      if (!Array.isArray(incoming)) throw new Error();
+      const have = new Set(notes.map(n => n.id));
+      const valid = incoming.filter(n => n && typeof n.id === 'string' && typeof n.text === 'string' && typeof n.created === 'string' && !have.has(n.id))
+        .map(n => ({ ...n, tags: Array.isArray(n.tags) ? n.tags : [], loc: n.loc || null, locStatus: n.loc ? 'ok' : null }));
+      notes = [...notes, ...valid].sort((a, b) => b.created.localeCompare(a.created));
+      saveNotes(); render();
+      toast(valid.length ? `Restored ${valid.length} note${valid.length === 1 ? '' : 's'}` : 'No new notes in that backup');
+    } catch { toast("That file isn't a Fieldnotes backup"); }
+  });
+
+  // ---------- install hint & offline ----------
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  if (isIOS && !standalone && !prefs.hideInstall) $('installBanner').hidden = false;
+  $('installDismiss').addEventListener('click', () => { $('installBanner').hidden = true; prefs.hideInstall = true; store(PREFS, prefs); });
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+  render();
+})();
+</script>
+</body>
+</html>
