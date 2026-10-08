@@ -92,7 +92,7 @@
 
   .btn {
     border: 1px solid var(--line); background: var(--card); color: var(--ink);
-    border-radius: 10px; padding: 8px 14px; min-height: 44px;
+    border-radius: 10px; padding: 8px 14px; min-height: 44px; white-space: nowrap;
   }
   .btn.primary { background: var(--forest); border-color: var(--forest); color: var(--on-forest); font-weight: 600; }
   .btn.primary:active { background: var(--forest-2); }
@@ -116,7 +116,10 @@
     width: 100%; border: 0; border-top: 1px dashed var(--line); background: transparent;
     padding: 10px 2px; outline: none; font-size: 15px;
   }
-  .composer-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
+  .composer-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; margin-top: 6px; }
+  .composer-bar .bar-actions { margin-left: auto; }
+  .composer-bar .bar-actions .btn:not(.primary) { padding: 8px 12px; }
+  #recordBtn.recording { min-width: 84px; }
   .toggle {
     display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); font-size: .9rem;
     min-height: 44px; user-select: none;
@@ -142,6 +145,51 @@
   .thumb { border: 0; padding: 0; background: var(--paper-2); border-radius: 8px; overflow: hidden; aspect-ratio: 1; }
   .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .chip.photos { border-style: dashed; }
+
+  /* Connections */
+  .dlg-sub { font-size: 1.05rem; margin: 18px 0 8px; }
+  .conn { display: flex; flex-direction: column; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .conn-status { font-size: .82rem; color: var(--muted); }
+  .bar-actions.multiline { flex-wrap: wrap; }
+  .steps { padding-left: 20px; margin: 0 0 12px; font-size: .92rem; color: var(--ink-2); }
+  .steps li { margin-bottom: 6px; }
+  .steps a { color: var(--water); }
+  .copyrow { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  .copyrow code { flex: 1; min-width: 0; overflow-wrap: anywhere; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: .8rem; }
+  .taxa { display: grid; gap: 4px; margin-top: 6px; }
+  .taxa:empty { display: none; }
+  .taxon { text-align: left; border: 1px solid var(--line); background: var(--paper); border-radius: 8px; padding: 8px 10px; min-height: 40px; }
+  .taxon em { color: var(--muted); font-size: .85rem; }
+  .picked { font-size: .82rem; color: var(--forest); margin-top: 4px; }
+  .picked:empty { display: none; }
+  .dlg .toggle { display: flex; margin-top: 4px; }
+  a.chip, .chip.linked { color: var(--forest); text-decoration: none; }
+
+  /* Voice memos */
+  .memos { display: grid; gap: 6px; margin: 6px 0 8px; }
+  .memos:empty { display: none; }
+  .memo {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; padding: 4px 8px;
+  }
+  .memo audio { flex: 1 1 0; width: 0; min-width: 0; height: 36px; }
+  .memo-len { font-size: .78rem; color: var(--muted); }
+  .memo-rm { border: 0; background: none; color: var(--muted); font-size: 20px; width: 32px; height: 32px; padding: 0; }
+  .btn.recording { background: var(--danger); border-color: var(--danger); color: #fff; font-variant-numeric: tabular-nums; }
+
+  /* Live location */
+  .btn[aria-pressed="true"] { background: var(--forest); border-color: var(--forest); color: var(--on-forest); }
+  .live { padding: 12px 14px; margin-bottom: 14px; }
+  .live-head { display: flex; align-items: center; gap: 8px; }
+  .live-age { margin-left: auto; font-size: .78rem; color: var(--muted); }
+  .live-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--forest); box-shadow: 0 0 0 0 var(--forest); animation: pulse 2s infinite; }
+  .live-dot.stale { background: var(--muted); animation: none; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(53,87,60,.5); } 70% { box-shadow: 0 0 0 8px rgba(53,87,60,0); } 100% { box-shadow: 0 0 0 0 rgba(53,87,60,0); } }
+  .live-coords { font-size: 1.3rem; margin: 8px 0 6px; letter-spacing: -.01em; }
+  .live-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin: 0 0 10px; }
+  .live-grid dt { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--contour); }
+  .live-grid dd { margin: 0; font-size: .95rem; }
+  .live .bar-actions .btn { flex: 1; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
 
   dialog.viewer {
     width: 100vw; height: 100vh; max-width: 100vw; max-height: 100vh; margin: 0;
@@ -218,7 +266,7 @@
   .dlg-actions { display: flex; gap: 8px; justify-content: space-between; margin-top: 14px; flex-wrap: wrap; }
   .dlg-actions .right { display: flex; gap: 8px; margin-left: auto; }
   .export-list { display: grid; gap: 8px; }
-  .export-list .btn { text-align: left; display: flex; flex-direction: column; align-items: flex-start; padding: 10px 14px; }
+  .export-list .btn { text-align: left; display: flex; flex-direction: column; align-items: flex-start; padding: 10px 14px; white-space: normal; }
   .export-list .btn small { color: var(--muted); font-size: .78rem; }
 
   .toast {
@@ -237,7 +285,10 @@
       <h1 class="serif">Fieldnotes</h1>
       <div class="count" id="count"></div>
     </div>
-    <button class="btn" id="exportBtn">Export</button>
+    <div class="bar-actions">
+      <button class="btn" id="liveBtn" aria-pressed="false" aria-controls="livePanel">📍 Live</button>
+      <button class="btn" id="exportBtn">Export</button>
+    </div>
   </header>
 
   <div class="banner" id="installBanner" hidden>
@@ -245,9 +296,29 @@
     <button aria-label="Dismiss" id="installDismiss">×</button>
   </div>
 
+  <section class="card live" id="livePanel" hidden aria-live="off">
+    <div class="live-head">
+      <span class="live-dot" id="liveDot"></span>
+      <strong>Live location</strong>
+      <span class="live-age" id="liveAge"></span>
+    </div>
+    <div class="live-coords mono" id="liveCoords">—</div>
+    <dl class="live-grid">
+      <div><dt>Accuracy</dt><dd id="liveAcc">—</dd></div>
+      <div><dt>Altitude</dt><dd id="liveAlt">—</dd></div>
+      <div><dt>Speed</dt><dd id="liveSpeed">—</dd></div>
+      <div><dt>Heading</dt><dd id="liveHeading">—</dd></div>
+    </dl>
+    <div class="bar-actions">
+      <button class="btn" id="liveCopy">Copy</button>
+      <a class="btn" id="liveMaps" href="#" target="_blank" rel="noopener">Open in Maps</a>
+    </div>
+  </section>
+
   <section class="card composer">
     <textarea id="noteText" placeholder="What are you observing?" aria-label="New note"></textarea>
     <div class="photo-strip" id="draftPhotos"></div>
+    <div class="memos" id="draftAudio"></div>
     <input class="tags-input" id="noteTags" type="text" placeholder="Tags, separated by commas" autocapitalize="none" autocomplete="off" aria-label="Tags">
     <div class="composer-bar">
       <div>
@@ -256,6 +327,7 @@
       </div>
       <div class="bar-actions">
         <button class="btn" id="addPhotoBtn" aria-label="Add photo">📷</button>
+        <button class="btn" id="recordBtn" aria-label="Record voice memo">🎙</button>
         <button class="btn primary" id="saveBtn" disabled>Save</button>
       </div>
     </div>
@@ -279,7 +351,12 @@
     <textarea id="editText" aria-label="Note text"></textarea>
     <input type="text" id="editTags" placeholder="Tags, separated by commas" autocapitalize="none" autocomplete="off" aria-label="Tags">
     <div class="photo-strip" id="editPhotos"></div>
-    <button type="button" class="btn" id="editAddPhoto" style="margin-top:8px">📷 Add photo</button>
+    <div class="memos" id="editAudio"></div>
+    <div class="bar-actions" style="margin-top:8px">
+      <button type="button" class="btn" id="editAddPhoto">📷 Add photo</button>
+      <button type="button" class="btn" id="editRecord">🎙 Record memo</button>
+    </div>
+    <button type="button" class="btn" id="editInat" style="margin-top:8px">🔎 Post to iNaturalist</button>
     <input type="file" id="editPhotoInput" accept="image/*" multiple hidden>
     <div class="dlg-actions">
       <button type="button" class="btn danger" id="deleteBtn">Delete</button>
@@ -299,11 +376,75 @@
       <button class="btn" data-fmt="md">Markdown (.md)<small>Readable notes grouped by day, for writing up</small></button>
       <button class="btn" data-fmt="csv">Spreadsheet (.csv)<small>One row per note, opens in Excel or Sheets</small></button>
       <button class="btn" data-fmt="geojson">GeoJSON (.geojson)<small>Located notes as points for QGIS or ArcGIS</small></button>
-      <button class="btn" data-fmt="json">Backup (.json)<small>Everything including photos, to restore later or on another device</small></button>
+      <button class="btn" data-fmt="json">Backup (.json)<small>Everything including photos and memos, to restore later or on another device</small></button>
       <button class="btn" id="importBtn">Restore from backup…<small>Adds notes from a .json backup and skips duplicates</small></button>
     </div>
     <input type="file" id="importFile" accept=".json,application/json" hidden>
+    <h3 class="dlg-sub serif">Connections</h3>
+    <div class="conn">
+      <div><strong>ArcGIS Online</strong><div class="conn-status" id="agoStatus"></div></div>
+      <div class="bar-actions multiline" id="agoActions"></div>
+    </div>
+    <div class="conn">
+      <div><strong>iNaturalist</strong><div class="conn-status" id="inatStatus"></div></div>
+      <div class="bar-actions multiline" id="inatActions"></div>
+    </div>
     <div class="dlg-actions"><div class="right"><button class="btn" id="exportClose">Done</button></div></div>
+  </div>
+</dialog>
+
+<dialog id="agoDlg">
+  <div class="dlg">
+    <h2 class="serif">Connect ArcGIS Online</h2>
+    <p class="sub">One-time setup, about 3 minutes. Do it in ArcGIS Online on a computer or in Safari.</p>
+    <ol class="steps">
+      <li>Sign in at <strong>arcgis.com</strong> with your school or work account and open <strong>Content</strong>.</li>
+      <li>Choose <strong>New item → Developer credentials → OAuth credentials</strong>.</li>
+      <li>For <strong>Redirect URLs</strong>, add this address exactly:
+        <div class="copyrow"><code id="agoRedirect"></code><button type="button" class="btn" id="agoCopyRedirect">Copy</button></div></li>
+      <li>Give it a title like “Fieldnotes”, finish, then copy its <strong>Client ID</strong> and paste it here.</li>
+    </ol>
+    <input type="text" id="agoClientId" placeholder="Client ID" autocapitalize="none" autocomplete="off" spellcheck="false" aria-label="ArcGIS Client ID">
+    <p class="sub" style="margin-top:10px">Next you’ll sign in with ArcGIS. On first sync Fieldnotes creates a “Fieldnotes” layer in your content, and syncing adds your located notes as points with photos and memos attached.</p>
+    <div class="dlg-actions"><div class="right">
+      <button type="button" class="btn" id="agoCancel">Cancel</button>
+      <button type="button" class="btn primary" id="agoGo">Sign in</button>
+    </div></div>
+  </div>
+</dialog>
+
+<dialog id="inatDlg">
+  <div class="dlg">
+    <h2 class="serif">Connect iNaturalist</h2>
+    <ol class="steps">
+      <li>In <strong>Safari</strong>, sign in at inaturalist.org, then open
+        <a href="https://www.inaturalist.org/users/api_token" target="_blank" rel="noopener">inaturalist.org/users/api_token</a>.</li>
+      <li>Select all of the text on that page, copy it, and paste it below.</li>
+    </ol>
+    <textarea id="inatToken" placeholder="Paste your API token" autocapitalize="none" spellcheck="false" aria-label="iNaturalist API token" style="min-height:90px"></textarea>
+    <p class="sub" style="margin-top:10px">The token lasts 24 hours, so on days you post you’ll paste a fresh one. It stays on this phone and is only sent to iNaturalist.</p>
+    <div class="dlg-actions"><div class="right">
+      <button type="button" class="btn" id="inatCancel">Cancel</button>
+      <button type="button" class="btn primary" id="inatGo">Connect</button>
+    </div></div>
+  </div>
+</dialog>
+
+<dialog id="inatPostDlg">
+  <div class="dlg">
+    <h2 class="serif">Post to iNaturalist</h2>
+    <p class="sub" id="inatPostMeta"></p>
+    <input type="text" id="inatSpecies" placeholder="What is it? (e.g. Great Egret)" autocomplete="off" aria-label="Species">
+    <div class="taxa" id="inatTaxa"></div>
+    <div class="picked" id="inatPicked"></div>
+    <textarea id="inatDesc" aria-label="Description" style="min-height:90px;margin-top:8px"></textarea>
+    <label class="toggle" id="inatPhotosRow"><input type="checkbox" id="inatPhotos" checked> <span id="inatPhotosLabel"></span></label>
+    <label class="toggle" id="inatSoundsRow"><input type="checkbox" id="inatSounds" checked> <span id="inatSoundsLabel"></span></label>
+    <label class="toggle"><input type="checkbox" id="inatObscure"> Obscure exact location (for sensitive species or private land)</label>
+    <div class="dlg-actions"><div class="right">
+      <button type="button" class="btn" id="inatPostCancel">Cancel</button>
+      <button type="button" class="btn primary" id="inatPostGo">Post</button>
+    </div></div>
   </div>
 </dialog>
 
@@ -337,11 +478,11 @@
   notes.forEach(n => { if (n.locStatus === 'pending') n.locStatus = 'unavailable'; });
   const saveNotes = () => store(KEY, notes);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
-  notes.forEach(n => { if (!Array.isArray(n.photos)) n.photos = []; });
+  notes.forEach(n => { if (!Array.isArray(n.photos)) n.photos = []; if (!Array.isArray(n.audio)) n.audio = []; });
 
-  // ---------- photo storage ----------
-  // Photos are too big for localStorage, so they live in IndexedDB keyed by id;
-  // notes only hold the ids.
+  // ---------- media storage ----------
+  // Photos and voice memos are too big for localStorage, so they live in
+  // IndexedDB keyed by id; notes only hold the ids.
   let dbPromise;
   const openDB = () => dbPromise || (dbPromise = new Promise((res, rej) => {
     const r = indexedDB.open('fieldnotes', 1);
@@ -349,29 +490,29 @@
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
   }));
-  const photoTx = (mode, fn) => openDB().then(db => new Promise((res, rej) => {
+  const mediaTx = (mode, fn) => openDB().then(db => new Promise((res, rej) => {
     const t = db.transaction('photos', mode);
     const req = fn(t.objectStore('photos'));
     t.oncomplete = () => res(req && 'result' in req ? req.result : undefined);
     t.onerror = t.onabort = () => rej(t.error);
   }));
-  const photoPut = rec => photoTx('readwrite', s => s.put(rec));
-  const photoGet = id => photoTx('readonly', s => s.get(id));
-  const photoKeys = () => photoTx('readonly', s => s.getAllKeys());
-  const photoDel = ids => ids.length ? photoTx('readwrite', s => { ids.forEach(id => s.delete(id)); }) : Promise.resolve();
+  const mediaPut = rec => mediaTx('readwrite', s => s.put(rec));
+  const mediaGet = id => mediaTx('readonly', s => s.get(id));
+  const mediaKeys = () => mediaTx('readonly', s => s.getAllKeys());
+  const mediaDel = ids => ids.length ? mediaTx('readwrite', s => { ids.forEach(id => s.delete(id)); }) : Promise.resolve();
 
   const urlCache = new Map();
-  async function photoURL(id) {
+  async function mediaURL(id) {
     if (urlCache.has(id)) return urlCache.get(id);
-    const rec = await photoGet(id).catch(() => null);
+    const rec = await mediaGet(id).catch(() => null);
     if (!rec) return null;
     const url = URL.createObjectURL(rec.blob);
     urlCache.set(id, url);
     return url;
   }
-  function forgetPhotos(ids) {
+  function forgetMedia(ids) {
     ids.forEach(id => { const u = urlCache.get(id); if (u) URL.revokeObjectURL(u); urlCache.delete(id); });
-    return photoDel(ids).catch(() => {});
+    return mediaDel(ids).catch(() => {});
   }
 
   // Phone photos are 3–12 MB; shrink to a size that's plenty for notes.
@@ -397,7 +538,7 @@
       try {
         const { blob, w, h } = await shrink(f);
         const id = uid();
-        await photoPut({ id, blob, w, h, added: new Date().toISOString() });
+        await mediaPut({ id, blob, w, h, added: new Date().toISOString() });
         ids.push(id);
       } catch { toast("Couldn't add that photo"); }
     }
@@ -409,7 +550,7 @@
     ids.forEach(id => {
       const ph = el('div', 'ph');
       const img = el('img'); img.alt = 'Attached photo';
-      photoURL(id).then(u => { if (u) img.src = u; });
+      mediaURL(id).then(u => { if (u) img.src = u; });
       const rm = el('button', 'rm', '×'); rm.type = 'button'; rm.setAttribute('aria-label', 'Remove photo');
       rm.addEventListener('click', () => onRemove(id));
       img.addEventListener('click', () => openViewer(id));
@@ -419,7 +560,7 @@
 
   const viewDlg = $('viewDlg');
   async function openViewer(id) {
-    const u = await photoURL(id); if (!u) return;
+    const u = await mediaURL(id); if (!u) return;
     $('viewImg').src = u; viewDlg.showModal();
   }
   viewDlg.addEventListener('click', () => viewDlg.close());
@@ -446,29 +587,38 @@
   }
 
   // ---------- location ----------
-  // Warm up a fix while the user is typing so it's ready the moment they save.
-  let lastFix = null;
-  let watchId = null;
+  // One GPS watch feeds both the note stamp (warmed up while composing, so a fix
+  // is ready the moment you save) and the live panel.
+  let lastFix = null, watchId = null, composing = false, gpsError = null;
+  let liveOn = !!prefs.live;
   const gpsStatus = $('gpsStatus');
 
-  function startWatch() {
-    if (!prefs.gps || watchId !== null || !navigator.geolocation) return;
-    gpsStatus.textContent = 'Finding location…';
-    watchId = navigator.geolocation.watchPosition(
-      p => {
-        lastFix = { lat: p.coords.latitude, lon: p.coords.longitude, acc: Math.round(p.coords.accuracy), t: Date.now() };
-        gpsStatus.textContent = `Ready · ±${lastFix.acc} m`;
-      },
-      err => {
-        gpsStatus.textContent = err.code === 1 ? 'Location permission denied' : 'Location unavailable';
-        stopWatch();
-      },
-      { enableHighAccuracy: true, maximumAge: 15000, timeout: 30000 }
-    );
+  function updateWatch() {
+    const need = !document.hidden && !!navigator.geolocation && (liveOn || (prefs.gps && composing));
+    if (need && watchId === null) {
+      gpsError = null;
+      if (prefs.gps && !freshFix()) gpsStatus.textContent = 'Finding location…';
+      watchId = navigator.geolocation.watchPosition(onFix, onFixError,
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+      renderLive();
+    } else if (!need && watchId !== null) {
+      navigator.geolocation.clearWatch(watchId); watchId = null;
+    }
   }
-  function stopWatch() {
-    if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-    watchId = null;
+  function onFix(p) {
+    const c = p.coords;
+    lastFix = { lat: c.latitude, lon: c.longitude, acc: Math.round(c.accuracy),
+      alt: c.altitude, altAcc: c.altitudeAccuracy, speed: c.speed, heading: c.heading, t: Date.now() };
+    gpsError = null;
+    if (prefs.gps) gpsStatus.textContent = `Ready · ±${lastFix.acc} m`;
+    renderLive();
+  }
+  function onFixError(err) {
+    gpsError = err.code === 1 ? 'Location permission denied' : 'Waiting for GPS signal…';
+    if (prefs.gps) gpsStatus.textContent = err.code === 1 ? gpsError : 'Location unavailable';
+    // A denial is final; timeouts just mean no fix yet, so keep watching.
+    if (err.code === 1 && watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    renderLive();
   }
   function freshFix() { return lastFix && Date.now() - lastFix.t < 120000 ? lastFix : null; }
 
@@ -490,29 +640,150 @@
   gpsToggle.checked = !!prefs.gps;
   gpsToggle.addEventListener('change', () => {
     prefs.gps = gpsToggle.checked; store(PREFS, prefs);
-    if (prefs.gps) startWatch(); else { stopWatch(); gpsStatus.textContent = ''; }
+    if (prefs.gps) composing = true; else gpsStatus.textContent = '';
+    updateWatch();
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) stopWatch(); else if (document.activeElement === $('noteText')) startWatch();
+    if (document.hidden) { composing = false; stopRecording(); }
+    else composing = document.activeElement === $('noteText');
+    updateWatch();
   });
+
+  // ---------- live location panel ----------
+  const livePanel = $('livePanel'), liveBtn = $('liveBtn');
+  const CARDINALS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const num = v => typeof v === 'number' && isFinite(v);
+  let liveTimer = null;
+
+  function renderLive() {
+    if (!liveOn) return;
+    const f = lastFix;
+    $('liveCoords').textContent = f ? fmtCoord(f) : '—';
+    $('liveAcc').textContent = f ? `±${f.acc} m` : '—';
+    $('liveAlt').textContent = f && num(f.alt)
+      ? `${Math.round(f.alt)} m (${Math.round(f.alt * 3.28084)} ft)` + (num(f.altAcc) ? ` ±${Math.round(f.altAcc)}` : '')
+      : '—';
+    $('liveSpeed').textContent = f && num(f.speed) ? `${(f.speed * 2.23694).toFixed(1)} mph` : '—';
+    $('liveHeading').textContent = f && num(f.heading) && num(f.speed) && f.speed > 0.5
+      ? `${Math.round(f.heading)}° ${CARDINALS[Math.round(f.heading / 45) % 8]}` : '—';
+    const age = f ? Math.round((Date.now() - f.t) / 1000) : null;
+    $('liveAge').textContent = gpsError && (!f || age > 30) ? gpsError
+      : f ? (age < 3 ? 'Updated just now' : `Updated ${age < 60 ? age + ' s' : Math.round(age / 60) + ' min'} ago`)
+      : 'Finding location…';
+    $('liveDot').classList.toggle('stale', !f || age > 30);
+    $('liveMaps').href = f ? `https://maps.apple.com/?ll=${f.lat},${f.lon}&q=Current%20location` : '#';
+  }
+  function setLive(on) {
+    liveOn = on; prefs.live = on; store(PREFS, prefs);
+    livePanel.hidden = !on; liveBtn.setAttribute('aria-pressed', String(on));
+    clearInterval(liveTimer); liveTimer = on ? setInterval(renderLive, 1000) : null;
+    updateWatch(); renderLive();
+  }
+  liveBtn.addEventListener('click', () => setLive(!liveOn));
+  $('liveCopy').addEventListener('click', async () => {
+    if (!lastFix) { toast('No location yet'); return; }
+    const text = `${lastFix.lat.toFixed(6)}, ${lastFix.lon.toFixed(6)}`;
+    try { await navigator.clipboard.writeText(text); toast('Copied ' + text); }
+    catch { toast(text); }
+  });
+  $('liveMaps').addEventListener('click', e => { if (!lastFix) { e.preventDefault(); toast('No location yet'); } });
+
+  // ---------- voice memos ----------
+  const AUDIO_TYPES = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'];
+  const MAX_REC_MS = 10 * 60 * 1000;
+  const canRecord = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  const fmtDur = sec => { const s = Math.round(sec || 0); return `${Math.floor(s / 60)}:${pad(s % 60)}`; };
+  let rec = null;
+
+  async function toggleRecording(btn, onDone) {
+    if (rec) { stopRecording(); return; }
+    if (!canRecord) { toast('Voice recording isn’t supported in this browser'); return; }
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (e) { toast(e.name === 'NotAllowedError' ? 'Microphone permission denied' : 'Microphone unavailable'); return; }
+    const mimeType = AUDIO_TYPES.find(t => MediaRecorder.isTypeSupported(t));
+    let mr;
+    try { mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined); }
+    catch { stream.getTracks().forEach(t => t.stop()); toast('Couldn’t start recording'); return; }
+    const r = rec = { mr, chunks: [], started: Date.now(), label: btn.textContent };
+    mr.ondataavailable = e => { if (e.data && e.data.size) r.chunks.push(e.data); };
+    mr.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      clearInterval(r.timer);
+      btn.classList.remove('recording'); btn.textContent = r.label;
+      const dur = (Date.now() - r.started) / 1000;
+      const type = (mr.mimeType || mimeType || 'audio/mp4').split(';')[0];
+      const blob = new Blob(r.chunks, { type });
+      if (!blob.size) { toast('The recording was empty'); return; }
+      const id = uid();
+      try { await mediaPut({ id, kind: 'audio', blob, type, dur, added: new Date().toISOString() }); onDone(id); }
+      catch { toast('Couldn’t save the recording'); }
+    };
+    mr.start(1000);
+    btn.classList.add('recording');
+    const tick = () => {
+      const ms = Date.now() - r.started;
+      btn.textContent = '■ ' + fmtDur(ms / 1000);
+      if (ms >= MAX_REC_MS) { stopRecording(); toast('Stopped at 10 minutes'); }
+    };
+    tick(); r.timer = setInterval(tick, 500);
+  }
+  function stopRecording() {
+    if (!rec) return;
+    const r = rec; rec = null;
+    if (r.mr.state !== 'inactive') r.mr.stop();
+  }
+
+  function memoList(container, ids, onRemove) {
+    container.replaceChildren();
+    ids.forEach(id => {
+      const row = el('div', 'memo');
+      const audio = el('audio'); audio.controls = true; audio.preload = 'metadata';
+      const len = el('span', 'memo-len mono');
+      Promise.all([mediaURL(id), mediaGet(id).catch(() => null)]).then(([u, r]) => {
+        if (u) audio.src = u;
+        if (r) len.textContent = fmtDur(r.dur);
+      });
+      row.append(el('span', 'memo-icon', '🎙'), audio, len);
+      if (onRemove) {
+        const rm = el('button', 'memo-rm', '×'); rm.type = 'button'; rm.setAttribute('aria-label', 'Remove voice memo');
+        rm.addEventListener('click', () => onRemove(id));
+        row.append(rm);
+      }
+      container.append(row);
+    });
+  }
 
   // ---------- composer ----------
   const noteText = $('noteText'), noteTags = $('noteTags'), saveBtn = $('saveBtn');
   const draft = load(DRAFT, null);
   // Draft photos are already in IndexedDB, so they survive the app being closed.
   let draftPhotos = (draft && draft.photos) || [];
+  let draftAudio = (draft && draft.audio) || [];
   if (draft) { noteText.value = draft.text || ''; noteTags.value = draft.tags || ''; }
-  const syncSave = () => { saveBtn.disabled = !noteText.value.trim() && !draftPhotos.length; };
-  const saveDraft = () => store(DRAFT, { text: noteText.value, tags: noteTags.value, photos: draftPhotos });
+  const syncSave = () => { saveBtn.disabled = !noteText.value.trim() && !draftPhotos.length && !draftAudio.length; };
+  const saveDraft = () => store(DRAFT, { text: noteText.value, tags: noteTags.value, photos: draftPhotos, audio: draftAudio });
+  const renderDraftAudio = () => memoList($('draftAudio'), draftAudio, id => {
+    draftAudio = draftAudio.filter(x => x !== id); forgetMedia([id]);
+    saveDraft(); renderDraftAudio(); syncSave();
+  });
   const renderDraftPhotos = () => photoStrip($('draftPhotos'), draftPhotos, id => {
-    draftPhotos = draftPhotos.filter(x => x !== id); forgetPhotos([id]);
+    draftPhotos = draftPhotos.filter(x => x !== id); forgetMedia([id]);
     saveDraft(); renderDraftPhotos(); syncSave();
   });
-  syncSave(); renderDraftPhotos();
+  syncSave(); renderDraftPhotos(); renderDraftAudio();
   [noteText, noteTags].forEach(i => i.addEventListener('input', () => { syncSave(); saveDraft(); }));
-  noteText.addEventListener('focus', startWatch);
+  const startComposing = () => { composing = true; updateWatch(); };
+  noteText.addEventListener('focus', startComposing);
 
-  $('addPhotoBtn').addEventListener('click', () => { startWatch(); $('photoInput').click(); });
+  $('addPhotoBtn').addEventListener('click', () => { startComposing(); $('photoInput').click(); });
+  $('recordBtn').addEventListener('click', e => {
+    startComposing();
+    toggleRecording(e.currentTarget, id => {
+      draftAudio = [...draftAudio, id];
+      saveDraft(); renderDraftAudio(); syncSave();
+    });
+  });
   $('photoInput').addEventListener('change', async e => {
     const files = [...e.target.files]; e.target.value = '';
     if (!files.length) return;
@@ -523,15 +794,16 @@
 
   saveBtn.addEventListener('click', () => {
     const text = noteText.value.trim();
-    if (!text && !draftPhotos.length) return;
+    if (!text && !draftPhotos.length && !draftAudio.length) return;
+    if (rec) { toast('Stop recording first'); return; }
     const now = new Date().toISOString();
-    const note = { id: uid(), created: now, updated: now, text, tags: parseTags(noteTags.value), photos: draftPhotos, loc: null, locStatus: null };
+    const note = { id: uid(), created: now, updated: now, text, tags: parseTags(noteTags.value), photos: draftPhotos, audio: draftAudio, loc: null, locStatus: null };
     if (prefs.gps && navigator.geolocation) locateNote(note);
     notes.unshift(note);
     if (!saveNotes()) { notes.shift(); return; }
-    noteText.value = ''; noteTags.value = ''; draftPhotos = [];
+    noteText.value = ''; noteTags.value = ''; draftPhotos = []; draftAudio = [];
     try { localStorage.removeItem(DRAFT); } catch {}
-    syncSave(); renderDraftPhotos(); render();
+    syncSave(); renderDraftPhotos(); renderDraftAudio(); render();
     toast('Saved');
   });
 
@@ -590,12 +862,13 @@
         n.photos.forEach(id => {
           const b = el('button', 'thumb'); b.setAttribute('aria-label', 'View photo');
           const img = el('img'); img.alt = ''; img.loading = 'lazy';
-          photoURL(id).then(u => { if (u) img.src = u; });
+          mediaURL(id).then(u => { if (u) img.src = u; });
           b.append(img); b.addEventListener('click', () => openViewer(id));
           thumbs.append(b);
         });
         card.append(thumbs);
       }
+      if (n.audio.length) { const memos = el('div', 'memos'); memoList(memos, n.audio); card.append(memos); }
 
       const meta = el('div', 'note-meta');
       n.tags.forEach(t => {
@@ -604,6 +877,11 @@
         meta.append(c);
       });
       const loc = locNode(n); if (loc) meta.append(loc);
+      if (n.arcgis) meta.append(el('span', 'chip linked', n.updated > n.arcgis.synced ? 'ArcGIS · edited' : 'ArcGIS ✓'));
+      if (n.inat) {
+        const a = el('a', 'chip linked', 'iNaturalist ↗'); a.href = n.inat.url; a.target = '_blank'; a.rel = 'noopener';
+        meta.append(a);
+      }
       if (meta.childNodes.length) card.append(meta);
       list.append(card);
     }
@@ -614,21 +892,32 @@
   let editingId = null;
   // Photo changes are staged until Save: added ones are stored right away (and
   // dropped on cancel), removed ones are only deleted once the edit is saved.
-  let editPhotos = [], editAdded = [], editSaved = false;
+  let editPhotos = [], editAudio = [], editAdded = [], editSaved = false;
   const renderEditPhotos = () => photoStrip($('editPhotos'), editPhotos, id => {
     editPhotos = editPhotos.filter(x => x !== id); renderEditPhotos();
   });
+  const renderEditAudio = () => memoList($('editAudio'), editAudio, id => {
+    editAudio = editAudio.filter(x => x !== id); renderEditAudio();
+  });
   function openEdit(id) {
     const n = notes.find(x => x.id === id); if (!n) return;
-    editingId = id; editPhotos = [...n.photos]; editAdded = []; editSaved = false;
+    editingId = id; editPhotos = [...n.photos]; editAudio = [...n.audio]; editAdded = []; editSaved = false;
     const d = new Date(n.created);
     $('editMeta').textContent = `${fmtDay(d)} · ${fmtTime(d)}` + (n.loc ? ` · ${fmtCoord(n.loc)}` : '');
     $('editText').value = n.text;
     $('editTags').value = n.tags.join(', ');
-    renderEditPhotos();
+    renderEditPhotos(); renderEditAudio();
+    $('editInat').textContent = n.inat ? 'View on iNaturalist ↗' : '🔎 Post to iNaturalist';
     editDlg.showModal();
   }
   $('editAddPhoto').addEventListener('click', () => $('editPhotoInput').click());
+  $('editInat').addEventListener('click', () => {
+    const n = notes.find(x => x.id === editingId); if (!n) return;
+    if (n.inat) window.open(n.inat.url, '_blank', 'noopener'); else openInatPost(n.id);
+  });
+  $('editRecord').addEventListener('click', e => toggleRecording(e.currentTarget, id => {
+    editAdded.push(id); editAudio.push(id); renderEditAudio();
+  }));
   $('editPhotoInput').addEventListener('change', async e => {
     const files = [...e.target.files]; e.target.value = '';
     if (!files.length) return;
@@ -639,15 +928,17 @@
     const n = notes.find(x => x.id === editingId);
     const text = $('editText').value.trim();
     if (!n) return;
-    if (!text && !editPhotos.length) { e.preventDefault(); toast('A note needs text or a photo — use Delete to remove it'); return; }
-    const removed = n.photos.filter(id => !editPhotos.includes(id));
-    n.text = text; n.tags = parseTags($('editTags').value); n.photos = [...editPhotos]; n.updated = new Date().toISOString();
+    if (rec) { e.preventDefault(); toast('Stop recording first'); return; }
+    if (!text && !editPhotos.length && !editAudio.length) { e.preventDefault(); toast('A note needs text, a photo or a memo — use Delete to remove it'); return; }
+    const removed = [...n.photos.filter(id => !editPhotos.includes(id)), ...n.audio.filter(id => !editAudio.includes(id))];
+    n.text = text; n.tags = parseTags($('editTags').value); n.photos = [...editPhotos]; n.audio = [...editAudio]; n.updated = new Date().toISOString();
     editSaved = true;
-    if (saveNotes()) forgetPhotos(removed);
+    if (saveNotes()) forgetMedia(removed);
     render(); toast('Updated');
   });
   editDlg.addEventListener('close', () => {
-    if (!editSaved) forgetPhotos(editAdded);
+    stopRecording();
+    if (!editSaved) forgetMedia(editAdded);
     editAdded = [];
   });
   $('editCancel').addEventListener('click', () => editDlg.close());
@@ -655,17 +946,23 @@
     if (!confirm('Delete this note? This cannot be undone.')) return;
     const n = notes.find(x => x.id === editingId);
     notes = notes.filter(x => x.id !== editingId);
-    if (saveNotes() && n) forgetPhotos(n.photos);
+    if (saveNotes() && n) {
+      forgetMedia([...n.photos, ...n.audio]);
+      // Remove it from the ArcGIS layer on the next sync too.
+      if (n.arcgis) { ago.pendingDeletes.push(n.arcgis.oid); saveAgo(); }
+    }
     editDlg.close(); render(); toast('Deleted');
   });
 
   // ---------- export / import ----------
   const exportDlg = $('exportDlg');
+  const plural = (k, word) => `${k} ${word}${k === 1 ? '' : 's'}`;
   $('exportBtn').addEventListener('click', () => {
     const located = notes.filter(n => n.loc).length;
     const photos = notes.reduce((a, n) => a + n.photos.length, 0);
-    $('exportSub').textContent = `${notes.length} notes, ${located} with location, ${photos} photo${photos === 1 ? '' : 's'}.` +
-      (photos ? ' Exports include a photos folder in a .zip.' : '');
+    const memos = notes.reduce((a, n) => a + n.audio.length, 0);
+    $('exportSub').textContent = `${plural(notes.length, 'note')}, ${located} with location, ${plural(photos, 'photo')}, ${plural(memos, 'voice memo')}.` +
+      (photos || memos ? ' Exports with media come as a .zip with photos and audio folders.' : '');
     exportDlg.showModal();
   });
   $('exportClose').addEventListener('click', () => exportDlg.close());
@@ -673,58 +970,76 @@
   const chrono = () => [...notes].sort((a, b) => a.created.localeCompare(b.created));
   const stamp = () => { const d = new Date(); return `${dayKey(d)}_${pad(d.getHours())}${pad(d.getMinutes())}`; };
   const csvCell = v => /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-  // Readable, sortable file names: 2026-10-08_142530_k3x9_1.jpg (the id tail
-  // keeps notes saved in the same second apart).
-  const photoNames = n => {
-    const d = new Date(n.created);
-    const base = `${dayKey(d)}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}_${n.id.slice(-4)}`;
-    return n.photos.map((_, i) => `${base}_${i + 1}.jpg`);
-  };
+  const AUDIO_EXT = { 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/aac': 'aac', 'audio/webm': 'webm', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/wav': 'wav' };
+
+  // Gather the media files for a set of notes, named readably and sortably:
+  // photos/2026-10-08_142530_k3x9_1.jpg, audio/2026-10-08_142530_k3x9_memo1.m4a
+  // (the id tail keeps notes saved in the same second apart).
+  async function collectMedia(list) {
+    const paths = new Map(), files = [];
+    for (const n of list) {
+      const d = new Date(n.created);
+      const base = `${dayKey(d)}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}_${n.id.slice(-4)}`;
+      const add = async (id, name) => {
+        const r = await mediaGet(id).catch(() => null);
+        if (!r) return;
+        paths.set(id, { path: name(r), dur: r.dur });
+        files.push({ name: paths.get(id).path, blob: r.blob });
+      };
+      for (const [i, id] of n.photos.entries()) await add(id, () => `photos/${base}_${i + 1}.jpg`);
+      for (const [i, id] of n.audio.entries()) await add(id, r => `audio/${base}_memo${i + 1}.${AUDIO_EXT[r.type] || 'm4a'}`);
+    }
+    return { paths, files };
+  }
+  const pathsOf = (ids, paths) => ids.map(id => paths.get(id)).filter(Boolean);
 
   const formats = {
-    md() {
+    md(list, paths) {
       let out = '# Fieldnotes\n';
       let day = null;
-      for (const n of chrono()) {
+      for (const n of list) {
         const d = new Date(n.created);
         if (dayKey(d) !== day) { day = dayKey(d); out += `\n## ${d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n`; }
         out += `\n### ${fmtTime(d)}` + (n.loc ? ` — ${fmtCoord(n.loc)} (±${n.loc.acc} m)` : '') + '\n\n';
         if (n.text) out += n.text + '\n';
-        photoNames(n).forEach(p => { out += `\n![](photos/${p})\n`; });
+        pathsOf(n.photos, paths).forEach(p => { out += `\n![](${p.path})\n`; });
+        pathsOf(n.audio, paths).forEach(p => { out += `\n[🎙 Voice memo (${fmtDur(p.dur)})](${p.path})\n`; });
         if (n.tags.length) out += '\n' + n.tags.map(t => '#' + t).join(' ') + '\n';
       }
       return { body: out, type: 'text/markdown', ext: 'md' };
     },
-    csv() {
-      const rows = [['id', 'date', 'time', 'latitude', 'longitude', 'accuracy_m', 'tags', 'photos', 'text']];
-      for (const n of chrono()) {
+    csv(list, paths) {
+      const rows = [['id', 'date', 'time', 'latitude', 'longitude', 'accuracy_m', 'tags', 'photos', 'audio', 'text']];
+      for (const n of list) {
         const d = new Date(n.created);
         rows.push([n.id, dayKey(d), `${pad(d.getHours())}:${pad(d.getMinutes())}`,
           n.loc ? String(n.loc.lat) : '', n.loc ? String(n.loc.lon) : '', n.loc ? String(n.loc.acc) : '',
-          n.tags.join('; '), photoNames(n).join('; '), n.text]);
+          n.tags.join('; '), pathsOf(n.photos, paths).map(p => p.path).join('; '),
+          pathsOf(n.audio, paths).map(p => p.path).join('; '), n.text]);
       }
       // BOM so Excel reads accented characters correctly.
       return { body: '﻿' + rows.map(r => r.map(csvCell).join(',')).join('\r\n'), type: 'text/csv', ext: 'csv' };
     },
-    geojson() {
-      const located = chrono().filter(n => n.loc);
-      if (!located.length) { toast('No notes have a location yet'); return null; }
-      const features = located.map(n => ({
+    geojson(list, paths) {
+      const features = list.map(n => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [n.loc.lon, n.loc.lat] },
-        properties: { id: n.id, created: n.created, accuracy_m: n.loc.acc, tags: n.tags.join(', '), photos: photoNames(n).map(p => 'photos/' + p).join(', '), text: n.text }
+        properties: { id: n.id, created: n.created, accuracy_m: n.loc.acc, tags: n.tags.join(', '),
+          photos: pathsOf(n.photos, paths).map(p => p.path).join(', '),
+          audio: pathsOf(n.audio, paths).map(p => p.path).join(', '), text: n.text }
       }));
-      return { body: JSON.stringify({ type: 'FeatureCollection', features }, null, 2), type: 'application/geo+json', ext: 'geojson', only: located };
-    },
-    async json() {
-      const photos = {};
-      for (const n of notes) for (const id of n.photos) {
-        const rec = await photoGet(id).catch(() => null);
-        if (rec) photos[id] = { w: rec.w, h: rec.h, data: await blobToDataURL(rec.blob) };
-      }
-      return { body: JSON.stringify({ app: 'fieldnotes', version: 2, exported: new Date().toISOString(), notes, photos }), type: 'application/json', ext: 'json', noZip: true };
+      return { body: JSON.stringify({ type: 'FeatureCollection', features }, null, 2), type: 'application/geo+json', ext: 'geojson' };
     }
   };
+
+  async function backup() {
+    const media = {};
+    for (const n of notes) for (const id of [...n.photos, ...n.audio]) {
+      const r = await mediaGet(id).catch(() => null);
+      if (r) media[id] = { kind: r.kind || 'photo', type: r.type, w: r.w, h: r.h, dur: r.dur, data: await blobToDataURL(r.blob) };
+    }
+    return { body: JSON.stringify({ app: 'fieldnotes', version: 3, exported: new Date().toISOString(), notes, media }), type: 'application/json', ext: 'json' };
+  }
 
   const blobToDataURL = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); });
 
@@ -764,20 +1079,10 @@
     return new Blob([...parts, ...central, end], { type: 'application/zip' });
   }
 
-  async function withPhotos(out) {
-    const subset = out.only || notes;
-    const entries = [];
-    for (const n of subset) {
-      const names = photoNames(n);
-      for (let i = 0; i < n.photos.length; i++) {
-        const rec = await photoGet(n.photos[i]).catch(() => null);
-        if (rec) entries.push({ name: 'photos/' + names[i], data: new Uint8Array(await rec.blob.arrayBuffer()) });
-      }
-    }
-    if (out.noZip || !entries.length) return out;
+  async function zipWith(out, media) {
     const folder = `fieldnotes_${stamp()}`;
-    const files = [{ name: `${folder}/fieldnotes.${out.ext}`, data: new TextEncoder().encode(out.body) },
-      ...entries.map(e => ({ name: `${folder}/${e.name}`, data: e.data }))];
+    const files = [{ name: `${folder}/fieldnotes.${out.ext}`, data: new TextEncoder().encode(out.body) }];
+    for (const f of media) files.push({ name: `${folder}/${f.name}`, data: new Uint8Array(await f.blob.arrayBuffer()) });
     return { body: makeZip(files), type: 'application/zip', ext: 'zip' };
   }
 
@@ -796,11 +1101,15 @@
   }
 
   document.querySelectorAll('[data-fmt]').forEach(b => b.addEventListener('click', async () => {
-    if (!notes.length) { toast('Nothing to export yet'); return; }
+    const fmt = b.dataset.fmt;
+    const list = fmt === 'geojson' ? chrono().filter(n => n.loc) : chrono();
+    if (!list.length) { toast(fmt === 'geojson' && notes.length ? 'No notes have a location yet' : 'Nothing to export yet'); return; }
     b.disabled = true;
     try {
-      const out = await formats[b.dataset.fmt]();
-      if (out) await deliver(await withPhotos(out));
+      if (fmt === 'json') { await deliver(await backup()); return; }
+      const { paths, files } = await collectMedia(list);
+      const out = formats[fmt](list, paths);
+      await deliver(files.length ? await zipWith(out, files) : out);
     } catch { toast('Export failed'); }
     finally { b.disabled = false; }
   }));
@@ -813,20 +1122,26 @@
       const data = JSON.parse(await f.text());
       const incoming = Array.isArray(data) ? data : data.notes;
       if (!Array.isArray(incoming)) throw new Error();
-      const photos = (data && data.photos) || {};
+      // v3 backups keep photos and memos under "media"; v2 had only "photos".
+      const media = (data && (data.media || data.photos)) || {};
       const have = new Set(notes.map(n => n.id));
       const valid = [];
       for (const n of incoming) {
         if (!n || typeof n.id !== 'string' || typeof n.text !== 'string' || typeof n.created !== 'string' || have.has(n.id)) continue;
-        const kept = [];
-        for (const id of Array.isArray(n.photos) ? n.photos : []) {
-          const p = photos[id];
-          if (!p || typeof p.data !== 'string' || !p.data.startsWith('data:image/')) continue;
-          const blob = await (await fetch(p.data)).blob();
-          await photoPut({ id, blob, w: p.w, h: p.h, added: new Date().toISOString() });
-          kept.push(id);
-        }
-        valid.push({ ...n, tags: Array.isArray(n.tags) ? n.tags : [], photos: kept, loc: n.loc || null, locStatus: n.loc ? 'ok' : null });
+        const restore = async (ids, prefix, kind) => {
+          const kept = [];
+          for (const id of Array.isArray(ids) ? ids : []) {
+            const m = media[id];
+            if (!m || typeof m.data !== 'string' || !m.data.startsWith(prefix)) continue;
+            const blob = await (await fetch(m.data)).blob();
+            await mediaPut({ id, kind, blob, type: m.type || blob.type, w: m.w, h: m.h, dur: m.dur, added: new Date().toISOString() });
+            kept.push(id);
+          }
+          return kept;
+        };
+        const photos = await restore(n.photos, 'data:image/', 'photo');
+        const audio = await restore(n.audio, 'data:audio/', 'audio');
+        valid.push({ ...n, tags: Array.isArray(n.tags) ? n.tags : [], photos, audio, loc: n.loc || null, locStatus: n.loc ? 'ok' : null });
       }
       notes = [...notes, ...valid].sort((a, b) => b.created.localeCompare(a.created));
       saveNotes(); render();
@@ -834,18 +1149,365 @@
     } catch { toast("That file isn't a Fieldnotes backup"); }
   });
 
-  // Clear out photos left behind by an interrupted edit or draft. Skipped when
-  // no notes loaded, so an unreadable notes store can never wipe photos.
-  if (notes.length) photoKeys().then(keys => {
-    const used = new Set([...notes.flatMap(n => n.photos), ...draftPhotos]);
-    forgetPhotos(keys.filter(k => !used.has(k)));
+  // Clear out media left behind by an interrupted edit or draft. Skipped when
+  // no notes loaded, so an unreadable notes store can never wipe media.
+  if (notes.length) mediaKeys().then(keys => {
+    const used = new Set([...notes.flatMap(n => [...n.photos, ...n.audio]), ...draftPhotos, ...draftAudio]);
+    forgetMedia(keys.filter(k => !used.has(k)));
   }).catch(() => {});
+
+  // ---------- connections: shared ----------
+  const REDIRECT = new URL('./', location.href).href;
+  const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const randomKey = () => b64url(crypto.getRandomValues(new Uint8Array(32)));
+  const sha256 = async s => b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)));
+  const fmtWhen = ms => { const h = Math.round(ms / 3600000); return h >= 1 ? `${h} h` : `${Math.max(1, Math.round(ms / 60000))} min`; };
+  function actionButtons(container, buttons) {
+    container.replaceChildren(...buttons.map(([label, fn, primary]) => {
+      const b = el('button', 'btn' + (primary ? ' primary' : ''), label); b.type = 'button';
+      b.addEventListener('click', fn); return b;
+    }));
+  }
+
+  // ---------- ArcGIS Online ----------
+  // Sign-in is OAuth 2.0 with PKCE against the user's own OAuth credentials, so
+  // school/work single sign-on works. Notes sync into a hosted feature layer the
+  // app creates on first sync; photos and memos go up as attachments.
+  const AGO = 'https://www.arcgis.com/sharing/rest';
+  const AGO_KEY = 'fieldnotes.arcgis';
+  const ago = load(AGO_KEY, {});
+  ago.pendingDeletes = ago.pendingDeletes || [];
+  const saveAgo = () => store(AGO_KEY, ago);
+  const agoSignedIn = () => !!(ago.refresh && ago.refreshExpires > Date.now()) || !!(ago.token && ago.expires > Date.now());
+
+  async function agoSignIn() {
+    const verifier = randomKey(), state = randomKey();
+    ago.pkce = { verifier, state }; saveAgo();
+    const q = new URLSearchParams({ client_id: ago.clientId, response_type: 'code', redirect_uri: REDIRECT,
+      code_challenge: await sha256(verifier), code_challenge_method: 'S256', state });
+    location.href = `${AGO}/oauth2/authorize?${q}`;
+  }
+
+  async function agoTokenRequest(params) {
+    const res = await fetch(`${AGO}/oauth2/token`, { method: 'POST', body: new URLSearchParams({ client_id: ago.clientId, ...params }) });
+    const j = await res.json();
+    if (j.error) throw new Error(j.error_description || (j.error.message) || 'ArcGIS sign-in failed');
+    ago.token = j.access_token;
+    ago.expires = Date.now() + (j.expires_in || 1800) * 1000;
+    if (j.refresh_token) { ago.refresh = j.refresh_token; ago.refreshExpires = Date.now() + (j.refresh_token_expires_in || 1209600) * 1000; }
+    if (j.username) ago.username = j.username;
+    saveAgo();
+  }
+
+  // Returning from the ArcGIS sign-in page: swap the code for tokens.
+  async function agoFinishSignIn() {
+    const q = new URLSearchParams(location.search);
+    if (!q.has('code') && !q.has('error')) return;
+    if (!ago.pkce || q.get('state') !== ago.pkce.state) return;
+    const { verifier } = ago.pkce; delete ago.pkce; saveAgo();
+    history.replaceState(null, '', REDIRECT);
+    if (q.has('error')) { toast('ArcGIS sign-in was cancelled'); return; }
+    try {
+      await agoTokenRequest({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: REDIRECT, code_verifier: verifier });
+      toast(`Signed in to ArcGIS as ${ago.username}`);
+    } catch (e) { toast(e.message); }
+    renderConnections();
+  }
+
+  async function agoToken() {
+    if (ago.token && ago.expires > Date.now() + 60000) return ago.token;
+    if (ago.refresh && ago.refreshExpires > Date.now()) { await agoTokenRequest({ grant_type: 'refresh_token', refresh_token: ago.refresh }); return ago.token; }
+    throw new Error('Your ArcGIS sign-in has expired — sign in again');
+  }
+
+  async function agoPost(url, params, file) {
+    const token = await agoToken();
+    let body;
+    if (file) {
+      body = new FormData();
+      Object.entries({ ...params, f: 'json', token }).forEach(([k, v]) => body.append(k, v));
+      body.append('attachment', file.blob, file.name);
+    } else body = new URLSearchParams({ ...params, f: 'json', token });
+    const res = await fetch(url, { method: 'POST', body });
+    const j = await res.json();
+    if (j.error) throw new Error(j.error.message || 'ArcGIS request failed');
+    return j;
+  }
+
+  const AGO_FIELDS = [
+    { name: 'OBJECTID', type: 'esriFieldTypeOID', alias: 'OBJECTID', nullable: false, editable: false },
+    { name: 'GlobalID', type: 'esriFieldTypeGlobalID', alias: 'GlobalID', length: 38, nullable: false, editable: false },
+    { name: 'note_id', type: 'esriFieldTypeString', alias: 'Note ID', length: 64, nullable: true, editable: true },
+    { name: 'observed', type: 'esriFieldTypeDate', alias: 'Observed', length: 8, nullable: true, editable: true },
+    { name: 'notes', type: 'esriFieldTypeString', alias: 'Notes', length: 10000, nullable: true, editable: true },
+    { name: 'tags', type: 'esriFieldTypeString', alias: 'Tags', length: 1000, nullable: true, editable: true },
+    { name: 'accuracy_m', type: 'esriFieldTypeDouble', alias: 'Accuracy (m)', nullable: true, editable: true }
+  ];
+  const WORLD = { xmin: -180, ymin: -90, xmax: 180, ymax: 90, spatialReference: { wkid: 4326 } };
+
+  async function agoCreateLayer() {
+    const d = new Date();
+    const name = `Fieldnotes_${dayKey(d).replace(/-/g, '')}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    const svc = await agoPost(`${AGO}/content/users/${encodeURIComponent(ago.username)}/createService`, {
+      outputType: 'featureService',
+      createParameters: JSON.stringify({
+        name, serviceDescription: 'Notes synced from the Fieldnotes app', hasStaticData: false, maxRecordCount: 2000,
+        supportedQueryFormats: 'JSON', capabilities: 'Create,Delete,Query,Update,Editing',
+        spatialReference: { wkid: 4326 }, initialExtent: WORLD, allowGeometryUpdates: true, units: 'esriDecimalDegrees'
+      })
+    });
+    if (!svc.serviceurl) throw new Error('ArcGIS did not create the layer');
+    await agoPost(svc.serviceurl.replace('/rest/services/', '/rest/admin/services/') + '/addToDefinition', {
+      addToDefinition: JSON.stringify({ layers: [{
+        id: 0, name: 'Fieldnotes', type: 'Feature Layer', geometryType: 'esriGeometryPoint',
+        objectIdField: 'OBJECTID', globalIdField: 'GlobalID', hasAttachments: true, fields: AGO_FIELDS, extent: WORLD,
+        capabilities: 'Create,Delete,Query,Update,Editing', displayField: 'notes',
+        drawingInfo: { renderer: { type: 'simple', symbol: { type: 'esriSMS', style: 'esriSMSCircle', color: [53, 87, 60, 255], size: 9,
+          outline: { color: [255, 255, 255, 255], width: 1 } } } }
+      }] })
+    });
+    // A new layer means nothing has been synced to it yet.
+    notes.forEach(n => { delete n.arcgis; }); saveNotes();
+    Object.assign(ago, { serviceUrl: svc.serviceurl, itemId: svc.itemId, layerName: name, pendingDeletes: [] }); saveAgo();
+  }
+
+  const agoFeature = n => ({
+    geometry: { x: n.loc.lon, y: n.loc.lat, spatialReference: { wkid: 4326 } },
+    attributes: { note_id: n.id, observed: Date.parse(n.created), notes: n.text.slice(0, 10000), tags: n.tags.join(', '), accuracy_m: n.loc.acc,
+      ...(n.arcgis ? { OBJECTID: n.arcgis.oid } : {}) }
+  });
+
+  let agoBusy = false;
+  async function agoSync(progress) {
+    if (agoBusy) return;
+    agoBusy = true;
+    try {
+      if (!ago.serviceUrl) { progress('Creating your Fieldnotes layer…'); await agoCreateLayer(); }
+      const layer = ago.serviceUrl + '/0';
+      if (ago.pendingDeletes.length) {
+        progress('Removing deleted notes…');
+        await agoPost(layer + '/deleteFeatures', { objectIds: ago.pendingDeletes.join(',') });
+        ago.pendingDeletes = []; saveAgo();
+      }
+      const located = notes.filter(n => n.loc);
+      const adds = located.filter(n => !n.arcgis);
+      const updates = located.filter(n => n.arcgis && n.updated > n.arcgis.synced);
+      for (let i = 0; i < adds.length; i += 100) {
+        const batch = adds.slice(i, i + 100);
+        progress(`Adding notes ${i + 1}–${i + batch.length} of ${adds.length}…`);
+        const r = await agoPost(layer + '/addFeatures', { features: JSON.stringify(batch.map(agoFeature)) });
+        r.addResults.forEach((res, k) => { if (res.success) batch[k].arcgis = { oid: res.objectId, synced: batch[k].updated, media: [] }; });
+        saveNotes();
+      }
+      if (updates.length) {
+        progress(`Updating ${plural(updates.length, 'edited note')}…`);
+        const r = await agoPost(layer + '/updateFeatures', { features: JSON.stringify(updates.map(agoFeature)) });
+        r.updateResults.forEach((res, k) => { if (res.success) updates[k].arcgis.synced = updates[k].updated; });
+        saveNotes();
+      }
+      const pending = notes.filter(n => n.arcgis).flatMap(n => [...n.photos, ...n.audio]
+        .filter(id => !n.arcgis.media.includes(id)).map(id => ({ n, id })));
+      const media = await collectMedia(notes.filter(n => n.arcgis));
+      for (const [k, { n, id }] of pending.entries()) {
+        progress(`Uploading attachment ${k + 1} of ${pending.length}…`);
+        const r = await mediaGet(id).catch(() => null);
+        const p = media.paths.get(id);
+        if (!r || !p) continue;
+        await agoPost(`${layer}/${n.arcgis.oid}/addAttachment`, {}, { blob: r.blob, name: p.path.split('/').pop() });
+        n.arcgis.media.push(id); saveNotes();
+      }
+      const skipped = notes.length - located.length;
+      ago.lastSync = Date.now(); saveAgo();
+      return `Synced ${plural(located.length, 'note')}` + (skipped ? ` · ${skipped} without a location skipped` : '');
+    } finally { agoBusy = false; render(); }
+  }
+
+  const agoDlg = $('agoDlg');
+  $('agoRedirect').textContent = REDIRECT;
+  $('agoCopyRedirect').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(REDIRECT); toast('Copied'); } catch { toast(REDIRECT); }
+  });
+  $('agoCancel').addEventListener('click', () => agoDlg.close());
+  $('agoGo').addEventListener('click', () => {
+    const id = $('agoClientId').value.trim();
+    if (!/^[A-Za-z0-9]{8,}$/.test(id)) { toast('That doesn’t look like a Client ID'); return; }
+    ago.clientId = id; saveAgo(); agoSignIn();
+  });
+
+  // ---------- iNaturalist ----------
+  // Uses the personal API token from inaturalist.org/users/api_token (valid
+  // 24 h). Registering a full OAuth app needs an iNat account that meets
+  // their app-owner requirements, so this keeps setup to a copy and paste.
+  const INAT = 'https://api.inaturalist.org/v1';
+  const INAT_KEY = 'fieldnotes.inat';
+  const inat = load(INAT_KEY, {});
+  const saveInat = () => store(INAT_KEY, inat);
+  const inatLive = () => !!inat.token && (!inat.exp || inat.exp > Date.now());
+
+  function parseInatToken(raw) {
+    raw = raw.trim();
+    try { const j = JSON.parse(raw); if (j.api_token) raw = j.api_token; } catch {}
+    const m = raw.match(/[\w-]+\.[\w-]+\.[\w-]+/);
+    if (!m) return null;
+    let exp = null;
+    try { const p = JSON.parse(atob(m[0].split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); if (p.exp) exp = p.exp * 1000; } catch {}
+    return { token: m[0], exp };
+  }
+
+  async function inatFetch(path, opts = {}) {
+    const res = await fetch(INAT + path, { ...opts, headers: { ...(opts.headers || {}), ...(opts.auth === false ? {} : { Authorization: inat.token }) } });
+    const j = await res.json().catch(() => null);
+    if (res.status === 401) throw new Error('Your iNaturalist token has expired — paste a new one');
+    if (!res.ok) {
+      const e = j && j.error;
+      throw new Error((e && e.original && e.original.error) || (typeof e === 'string' ? e : '') || `iNaturalist error ${res.status}`);
+    }
+    return j;
+  }
+
+  const inatDlg = $('inatDlg');
+  $('inatCancel').addEventListener('click', () => inatDlg.close());
+  $('inatGo').addEventListener('click', async () => {
+    const t = parseInatToken($('inatToken').value);
+    if (!t) { toast('Paste the whole token from the api_token page'); return; }
+    if (t.exp && t.exp < Date.now()) { toast('That token has already expired — reload the page for a new one'); return; }
+    const prev = { ...inat };
+    Object.assign(inat, t);
+    try {
+      const me = await inatFetch('/users/me');
+      inat.login = me.results && me.results[0] && me.results[0].login;
+      saveInat(); inatDlg.close(); $('inatToken').value = '';
+      toast(`Connected to iNaturalist as ${inat.login}`); renderConnections();
+      if (inatAfterConnect) { const id = inatAfterConnect; inatAfterConnect = null; openInatPost(id); }
+    } catch (e) { Object.assign(inat, prev); toast(e.message.includes('expired') ? 'iNaturalist didn’t accept that token' : e.message); }
+  });
+  let inatAfterConnect = null;
+
+  // Post a note as an iNaturalist observation.
+  const inatPostDlg = $('inatPostDlg');
+  let inatNote = null, inatTaxon = null, taxaTimer = null;
+  function openInatPost(id) {
+    const n = notes.find(x => x.id === id); if (!n) return;
+    if (!inatLive()) { inatAfterConnect = id; inatDlg.showModal(); return; }
+    inatNote = n; inatTaxon = null;
+    $('inatSpecies').value = ''; $('inatTaxa').replaceChildren(); $('inatPicked').textContent = '';
+    $('inatDesc').value = n.text;
+    $('inatPhotosRow').hidden = !n.photos.length; $('inatPhotos').checked = true;
+    $('inatPhotosLabel').textContent = `Include ${plural(n.photos.length, 'photo')}`;
+    $('inatSoundsRow').hidden = !n.audio.length; $('inatSounds').checked = true;
+    $('inatSoundsLabel').textContent = `Include ${plural(n.audio.length, 'voice memo')} as sounds`;
+    $('inatObscure').checked = false;
+    $('inatPostMeta').textContent = `${fmtDay(new Date(n.created))} · ${fmtTime(new Date(n.created))}` +
+      (n.loc ? ` · ${fmtCoord(n.loc)}` : ' · no location (iNaturalist will mark it “casual”)');
+    $('inatPostGo').disabled = false;
+    inatPostDlg.showModal();
+  }
+  $('inatSpecies').addEventListener('input', () => {
+    inatTaxon = null; $('inatPicked').textContent = '';
+    clearTimeout(taxaTimer);
+    const q = $('inatSpecies').value.trim();
+    if (q.length < 2) { $('inatTaxa').replaceChildren(); return; }
+    taxaTimer = setTimeout(async () => {
+      try {
+        const j = await inatFetch(`/taxa/autocomplete?q=${encodeURIComponent(q)}&per_page=6`, { auth: false });
+        if ($('inatSpecies').value.trim() !== q) return;
+        $('inatTaxa').replaceChildren(...j.results.map(t => {
+          const b = el('button', 'taxon'); b.type = 'button';
+          b.append(el('span', null, t.preferred_common_name || t.name), el('em', null, ` ${t.name}`));
+          b.addEventListener('click', () => {
+            inatTaxon = t; $('inatSpecies').value = t.preferred_common_name || t.name;
+            $('inatPicked').textContent = `✓ ${t.rank} ${t.name}`; $('inatTaxa').replaceChildren();
+          });
+          return b;
+        }));
+      } catch { /* offline: free-text guess still works */ }
+    }, 250);
+  });
+  $('inatPostCancel').addEventListener('click', () => inatPostDlg.close());
+  $('inatPostGo').addEventListener('click', async () => {
+    const n = inatNote; if (!n) return;
+    const btn = $('inatPostGo'); btn.disabled = true; btn.textContent = 'Posting…';
+    const problems = [];
+    try {
+      const guess = $('inatSpecies').value.trim();
+      const observation = {
+        description: $('inatDesc').value.trim(), observed_on_string: n.created,
+        ...(guess ? { species_guess: guess } : {}), ...(inatTaxon ? { taxon_id: inatTaxon.id } : {}),
+        ...(n.loc ? { latitude: n.loc.lat, longitude: n.loc.lon, positional_accuracy: n.loc.acc } : {}),
+        ...(n.tags.length ? { tag_list: n.tags.join(',') } : {}),
+        ...($('inatObscure').checked ? { geoprivacy: 'obscured' } : {})
+      };
+      const o = await inatFetch('/observations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ observation }) });
+      const obsId = o.id || (o.results && o.results[0] && o.results[0].id);
+      if (!obsId) throw new Error('iNaturalist didn’t return an observation');
+      n.inat = { id: obsId, url: `https://www.inaturalist.org/observations/${obsId}` }; saveNotes();
+      const media = await collectMedia([n]);
+      const upload = async (ids, endpoint, field) => {
+        for (const id of ids) {
+          const r = await mediaGet(id).catch(() => null), p = media.paths.get(id);
+          if (!r || !p) continue;
+          btn.textContent = `Uploading ${p.path.split('/')[0] === 'photos' ? 'photo' : 'sound'}…`;
+          const fd = new FormData();
+          fd.append(`${field}[observation_id]`, obsId);
+          fd.append('file', r.blob, p.path.split('/').pop());
+          try { await inatFetch(endpoint, { method: 'POST', body: fd }); }
+          catch (e) { problems.push(e.message); }
+        }
+      };
+      if ($('inatPhotos').checked) await upload(n.photos, '/observation_photos', 'observation_photo');
+      if ($('inatSounds').checked) await upload(n.audio, '/observation_sounds', 'observation_sound');
+      inatPostDlg.close(); editDlg.close(); render();
+      toast(problems.length ? `Posted, but ${plural(problems.length, 'file')} failed: ${problems[0]}` : 'Posted to iNaturalist');
+    } catch (e) {
+      toast(e.message);
+      if (/expired/.test(e.message)) { delete inat.token; saveInat(); renderConnections(); }
+    } finally { btn.disabled = false; btn.textContent = 'Post'; }
+  });
+
+  // ---------- connections panel (in the Export dialog) ----------
+  function renderConnections() {
+    const located = notes.filter(n => n.loc);
+    const synced = located.filter(n => n.arcgis && n.updated <= n.arcgis.synced).length;
+    if (!ago.clientId || !agoSignedIn()) {
+      $('agoStatus').textContent = ago.clientId ? 'Signed out' : 'Not set up';
+      actionButtons($('agoActions'), [[ago.clientId ? 'Sign in' : 'Set up', () => {
+        if (ago.clientId) agoSignIn(); else { $('agoClientId').value = ''; agoDlg.showModal(); }
+      }, true], ...(ago.clientId ? [['Change ID', () => { $('agoClientId').value = ago.clientId; agoDlg.showModal(); }]] : [])]);
+    } else {
+      $('agoStatus').textContent = `Signed in as ${ago.username}` +
+        (ago.serviceUrl ? ` · ${synced} of ${located.length} located notes synced to ${ago.layerName}` : ' · a layer is created on first sync');
+      actionButtons($('agoActions'), [
+        ['Sync now', async e => {
+          const b = e.currentTarget; b.disabled = true;
+          try { toast(await agoSync(msg => { $('agoStatus').textContent = msg; })); }
+          catch (err) { toast(err.message); }
+          finally { b.disabled = false; renderConnections(); }
+        }, true],
+        ...(ago.itemId ? [['Open layer', () => window.open(`https://www.arcgis.com/home/item.html?id=${ago.itemId}`, '_blank', 'noopener')]] : []),
+        ['Sign out', () => {
+          if (!confirm('Sign out of ArcGIS? Your layer stays in ArcGIS Online, and signing back in continues syncing to it.')) return;
+          ['token', 'expires', 'refresh', 'refreshExpires'].forEach(k => delete ago[k]); saveAgo(); renderConnections();
+        }]
+      ]);
+    }
+    if (inatLive()) {
+      $('inatStatus').textContent = `Connected as ${inat.login}` + (inat.exp ? ` · token good for ${fmtWhen(inat.exp - Date.now())}` : '');
+      actionButtons($('inatActions'), [['Disconnect', () => { delete inat.token; delete inat.exp; saveInat(); renderConnections(); }]]);
+    } else {
+      $('inatStatus').textContent = inat.login ? 'Token expired — paste a new one to post' : 'Not connected';
+      actionButtons($('inatActions'), [[inat.login ? 'Reconnect' : 'Connect', () => { inatAfterConnect = null; inatDlg.showModal(); }, true]]);
+    }
+  }
+  $('exportBtn').addEventListener('click', renderConnections);
+  agoFinishSignIn();
 
   // ---------- install hint & offline ----------
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const standalone = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches;
   if (isIOS && !standalone && !prefs.hideInstall) $('installBanner').hidden = false;
   $('installDismiss').addEventListener('click', () => { $('installBanner').hidden = true; prefs.hideInstall = true; store(PREFS, prefs); });
+
+  if (liveOn) setLive(true);
 
   if ('serviceWorker' in navigator) {
     // When a new version installs, reload once so it shows up right away
