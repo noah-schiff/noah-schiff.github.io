@@ -332,6 +332,7 @@
       </div>
     </div>
     <input type="file" id="photoInput" accept="image/*" multiple hidden>
+    <input type="file" id="audioInput" accept="audio/*,.m4a,.mp3,.wav,.aac" multiple hidden>
   </section>
 
   <div class="search">
@@ -689,37 +690,125 @@
   $('liveMaps').addEventListener('click', e => { if (!lastFix) { e.preventDefault(); toast('No location yet'); } });
 
   // ---------- voice memos ----------
+  // Three ways in, best first: MediaRecorder (compressed AAC on iPhone); if the
+  // browser lacks it, capture raw audio with Web Audio and encode WAV; if there
+  // is no microphone access at all, attach a recording from Files/Voice Memos.
   const AUDIO_TYPES = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'];
   const MAX_REC_MS = 10 * 60 * 1000;
-  const canRecord = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
-  const fmtDur = sec => { const s = Math.round(sec || 0); return `${Math.floor(s / 60)}:${pad(s % 60)}`; };
+  const hasMic = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  const hasMediaRecorder = typeof window.MediaRecorder === 'function';
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const fmtDur = sec => { const s = Math.round(isFinite(sec) ? sec : 0); return `${Math.floor(s / 60)}:${pad(s % 60)}`; };
   let rec = null;
+
+  function startMediaRecorder(stream) {
+    const mimeType = MediaRecorder.isTypeSupported ? AUDIO_TYPES.find(t => MediaRecorder.isTypeSupported(t)) : undefined;
+    const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    const chunks = [];
+    mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    mr.start(1000);
+    return {
+      stop: () => new Promise(res => {
+        mr.onstop = () => {
+          const type = (mr.mimeType || mimeType || 'audio/mp4').split(';')[0];
+          res(new Blob(chunks, { type }));
+        };
+        if (mr.state !== 'inactive') mr.stop(); else mr.onstop();
+      })
+    };
+  }
+
+  // Mono 16 kHz 16-bit WAV: about 1.9 MB a minute, plenty for speech.
+  const WAV_RATE = 16000;
+  function startWavRecorder(stream, ctx) {
+    const src = ctx.createMediaStreamSource(stream);
+    const node = ctx.createScriptProcessor(4096, 1, 1);
+    const ratio = ctx.sampleRate / WAV_RATE;
+    const parts = [];
+    let carry = 0;
+    node.onaudioprocess = e => {
+      const input = e.inputBuffer.getChannelData(0);
+      const out = new Int16Array(Math.floor((input.length - carry) / ratio) + 1);
+      let n = 0;
+      for (let pos = carry; pos < input.length; pos += ratio) {
+        // Average across each output sample's span to avoid aliasing.
+        const start = Math.floor(pos), end = Math.min(input.length, Math.floor(pos + ratio)) || start + 1;
+        let sum = 0; for (let i = start; i < end; i++) sum += input[i];
+        const v = Math.max(-1, Math.min(1, sum / Math.max(1, end - start)));
+        out[n++] = v < 0 ? v * 0x8000 : v * 0x7fff;
+        carry = pos + ratio - input.length;
+      }
+      parts.push(out.subarray(0, n));
+    };
+    src.connect(node); node.connect(ctx.destination);
+    return {
+      stop: async () => {
+        node.disconnect(); src.disconnect();
+        ctx.close().catch(() => {});
+        const samples = parts.reduce((a, p) => a + p.length, 0);
+        const head = new DataView(new ArrayBuffer(44));
+        const str = (o, s) => [...s].forEach((c, i) => head.setUint8(o + i, c.charCodeAt(0)));
+        str(0, 'RIFF'); head.setUint32(4, 36 + samples * 2, true); str(8, 'WAVE');
+        str(12, 'fmt '); head.setUint32(16, 16, true); head.setUint16(20, 1, true); head.setUint16(22, 1, true);
+        head.setUint32(24, WAV_RATE, true); head.setUint32(28, WAV_RATE * 2, true); head.setUint16(32, 2, true); head.setUint16(34, 16, true);
+        str(36, 'data'); head.setUint32(40, samples * 2, true);
+        return new Blob([head, ...parts], { type: 'audio/wav' });
+      }
+    };
+  }
+
+  // No microphone access: attach an existing recording instead.
+  let attachDone = null;
+  function attachAudio(onDone) {
+    attachDone = onDone;
+    toast('Microphone isn’t available here — pick a recording (e.g. Voice Memos → Save to Files)');
+    $('audioInput').click();
+  }
+  const audioDuration = blob => new Promise(res => {
+    const a = new Audio(), u = URL.createObjectURL(blob);
+    const done = d => { URL.revokeObjectURL(u); res(d); };
+    a.preload = 'metadata';
+    a.onloadedmetadata = () => done(isFinite(a.duration) ? a.duration : 0);
+    a.onerror = () => done(0);
+    setTimeout(() => done(0), 5000);
+    a.src = u;
+  });
+  $('audioInput').addEventListener('change', async e => {
+    const files = [...e.target.files]; e.target.value = '';
+    const onDone = attachDone; attachDone = null;
+    for (const f of files) {
+      if (f.size > 50 * 1024 * 1024) { toast(`${f.name} is over 50 MB`); continue; }
+      const id = uid();
+      try {
+        await mediaPut({ id, kind: 'audio', blob: f, type: f.type || 'audio/mp4', dur: await audioDuration(f), added: new Date().toISOString() });
+        if (onDone) onDone(id);
+      } catch { toast('Couldn’t add that recording'); }
+    }
+  });
 
   async function toggleRecording(btn, onDone) {
     if (rec) { stopRecording(); return; }
-    if (!canRecord) { toast('Voice recording isn’t supported in this browser'); return; }
+    if (!hasMic || (!hasMediaRecorder && !AudioCtx)) { attachAudio(onDone); return; }
+    // Create the audio context inside the tap, before any await, so iOS lets it run.
+    const ctx = hasMediaRecorder ? null : new AudioCtx();
     let stream;
     try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-    catch (e) { toast(e.name === 'NotAllowedError' ? 'Microphone permission denied' : 'Microphone unavailable'); return; }
-    const mimeType = AUDIO_TYPES.find(t => MediaRecorder.isTypeSupported(t));
-    let mr;
-    try { mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined); }
-    catch { stream.getTracks().forEach(t => t.stop()); toast('Couldn’t start recording'); return; }
-    const r = rec = { mr, chunks: [], started: Date.now(), label: btn.textContent };
-    mr.ondataavailable = e => { if (e.data && e.data.size) r.chunks.push(e.data); };
-    mr.onstop = async () => {
+    catch (e) {
+      if (ctx) ctx.close().catch(() => {});
+      if (e.name === 'NotAllowedError') toast('Microphone permission denied — allow it in Settings, or attach a recording');
+      else attachAudio(onDone);
+      return;
+    }
+    let recorder;
+    try {
+      if (ctx && ctx.state === 'suspended') await ctx.resume();
+      recorder = hasMediaRecorder ? startMediaRecorder(stream) : startWavRecorder(stream, ctx);
+    } catch {
       stream.getTracks().forEach(t => t.stop());
-      clearInterval(r.timer);
-      btn.classList.remove('recording'); btn.textContent = r.label;
-      const dur = (Date.now() - r.started) / 1000;
-      const type = (mr.mimeType || mimeType || 'audio/mp4').split(';')[0];
-      const blob = new Blob(r.chunks, { type });
-      if (!blob.size) { toast('The recording was empty'); return; }
-      const id = uid();
-      try { await mediaPut({ id, kind: 'audio', blob, type, dur, added: new Date().toISOString() }); onDone(id); }
-      catch { toast('Couldn’t save the recording'); }
-    };
-    mr.start(1000);
+      if (ctx) ctx.close().catch(() => {});
+      toast('Couldn’t start recording'); return;
+    }
+    const r = rec = { recorder, stream, btn, onDone, started: Date.now(), label: btn.textContent };
     btn.classList.add('recording');
     const tick = () => {
       const ms = Date.now() - r.started;
@@ -728,10 +817,20 @@
     };
     tick(); r.timer = setInterval(tick, 500);
   }
-  function stopRecording() {
+
+  async function stopRecording() {
     if (!rec) return;
     const r = rec; rec = null;
-    if (r.mr.state !== 'inactive') r.mr.stop();
+    clearInterval(r.timer);
+    r.btn.classList.remove('recording'); r.btn.textContent = r.label;
+    const dur = (Date.now() - r.started) / 1000;
+    let blob;
+    try { blob = await r.recorder.stop(); }
+    finally { r.stream.getTracks().forEach(t => t.stop()); }
+    if (!blob || blob.size <= 44) { toast('The recording was empty'); return; }
+    const id = uid();
+    try { await mediaPut({ id, kind: 'audio', blob, type: blob.type, dur, added: new Date().toISOString() }); r.onDone(id); }
+    catch { toast('Couldn’t save the recording'); }
   }
 
   function memoList(container, ids, onRemove) {
@@ -970,7 +1069,7 @@
   const chrono = () => [...notes].sort((a, b) => a.created.localeCompare(b.created));
   const stamp = () => { const d = new Date(); return `${dayKey(d)}_${pad(d.getHours())}${pad(d.getMinutes())}`; };
   const csvCell = v => /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-  const AUDIO_EXT = { 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/aac': 'aac', 'audio/webm': 'webm', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/wav': 'wav' };
+  const AUDIO_EXT = { 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/aac': 'aac', 'audio/webm': 'webm', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/mp3': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/wave': 'wav' };
 
   // Gather the media files for a set of notes, named readably and sortably:
   // photos/2026-10-08_142530_k3x9_1.jpg, audio/2026-10-08_142530_k3x9_memo1.m4a
