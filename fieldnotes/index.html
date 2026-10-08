@@ -127,6 +127,8 @@
   .toggle input { width: 20px; height: 20px; accent-color: var(--forest); margin: 0; }
   .gps-status { font-size: .78rem; color: var(--muted); }
   .bar-actions { display: flex; gap: 8px; }
+  .linkbtn { border: 0; background: none; padding: 4px 0; color: var(--water); font-size: .8rem; text-decoration: underline; text-underline-offset: 2px; }
+  .locrow { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; font-size: .85rem; margin: -6px 0 10px; color: var(--ink-2); }
 
   /* Photos */
   .photo-strip { display: flex; gap: 10px; overflow-x: auto; padding: 8px 2px 4px; }
@@ -325,6 +327,7 @@
       <div>
         <label class="toggle"><input type="checkbox" id="gpsToggle"> Stamp location</label>
         <div class="gps-status" id="gpsStatus"></div>
+        <button type="button" class="linkbtn" id="manualLocBtn">Set location by hand</button>
       </div>
       <div class="bar-actions">
         <button class="btn" id="addPhotoBtn" aria-label="Add photo">📷</button>
@@ -351,6 +354,9 @@
   <form method="dialog" class="dlg" id="editForm">
     <h2 class="serif">Edit note</h2>
     <p class="sub" id="editMeta"></p>
+    <div class="locrow"><span id="editLoc"></span>
+      <button type="button" class="linkbtn" id="editLocSet"></button>
+      <button type="button" class="linkbtn" id="editLocClear">Remove</button></div>
     <textarea id="editText" aria-label="Note text"></textarea>
     <input type="text" id="editTags" placeholder="Tags, separated by commas" autocapitalize="none" autocomplete="off" aria-label="Tags">
     <div class="photo-strip" id="editPhotos"></div>
@@ -587,6 +593,31 @@
   function toast(msg) {
     const t = $('toast'); t.textContent = msg; t.classList.add('show');
     clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  // ---------- location by hand ----------
+  // For when the phone blocks location, or a point needs correcting: accepts
+  // "30.4515, -91.1871", "30.4515° N, 91.1871° W", or an Apple/Google Maps link.
+  function parseLatLon(text) {
+    let t = (text || '').trim();
+    try { t = decodeURIComponent(t); } catch {}
+    let lat, lon, m;
+    if ((m = t.match(/(\d+(?:\.\d+)?)\s*°?\s*([NS])[\s,;]+(\d+(?:\.\d+)?)\s*°?\s*([EW])/i))) {
+      lat = +m[1] * (/s/i.test(m[2]) ? -1 : 1); lon = +m[3] * (/w/i.test(m[4]) ? -1 : 1);
+    } else if ((m = t.match(/[?&](?:ll|sll|q|query|center|daddr)=(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/) || t.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)
+      || t.match(/(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)/))) {
+      lat = +m[1]; lon = +m[2];
+    } else return null;
+    if (!(Math.abs(lat) <= 90 && Math.abs(lon) <= 180)) return null;
+    return { lat: +lat.toFixed(6), lon: +lon.toFixed(6), acc: null, manual: true };
+  }
+  const accLabel = l => l.manual ? 'set by hand' : `±${l.acc} m`;
+  function askLocation(current) {
+    const v = prompt('Paste coordinates (e.g. 30.4515, -91.1871) or a shared Apple/Google Maps pin link:', current ? `${current.lat}, ${current.lon}` : '');
+    if (v === null) return undefined;
+    const loc = parseLatLon(v);
+    if (!loc) { toast('Couldn’t read a location from that'); return undefined; }
+    return loc;
   }
 
   // ---------- location ----------
@@ -861,9 +892,10 @@
   // Draft photos are already in IndexedDB, so they survive the app being closed.
   let draftPhotos = (draft && draft.photos) || [];
   let draftAudio = (draft && draft.audio) || [];
+  let draftLoc = (draft && draft.loc) || null;
   if (draft) { noteText.value = draft.text || ''; noteTags.value = draft.tags || ''; }
   const syncSave = () => { saveBtn.disabled = !noteText.value.trim() && !draftPhotos.length && !draftAudio.length; };
-  const saveDraft = () => store(DRAFT, { text: noteText.value, tags: noteTags.value, photos: draftPhotos, audio: draftAudio });
+  const saveDraft = () => store(DRAFT, { text: noteText.value, tags: noteTags.value, photos: draftPhotos, audio: draftAudio, loc: draftLoc });
   const renderDraftAudio = () => memoList($('draftAudio'), draftAudio, id => {
     draftAudio = draftAudio.filter(x => x !== id); forgetMedia([id]);
     saveDraft(); renderDraftAudio(); syncSave();
@@ -874,6 +906,14 @@
   });
   syncSave(); renderDraftPhotos(); renderDraftAudio();
   [noteText, noteTags].forEach(i => i.addEventListener('input', () => { syncSave(); saveDraft(); }));
+  const renderDraftLoc = () => {
+    $('manualLocBtn').textContent = draftLoc ? `📍 ${fmtCoord(draftLoc)} (by hand) · change` : 'Set location by hand';
+  };
+  renderDraftLoc();
+  $('manualLocBtn').addEventListener('click', () => {
+    const loc = askLocation(draftLoc);
+    if (loc !== undefined) { draftLoc = loc; saveDraft(); renderDraftLoc(); }
+  });
   const startComposing = () => { composing = true; updateWatch(); };
   noteText.addEventListener('focus', startComposing);
 
@@ -899,10 +939,11 @@
     if (rec) { toast('Stop recording first'); return; }
     const now = new Date().toISOString();
     const note = { id: uid(), created: now, updated: now, text, tags: parseTags(noteTags.value), photos: draftPhotos, audio: draftAudio, loc: null, locStatus: null };
-    if (prefs.gps && navigator.geolocation) locateNote(note);
+    if (draftLoc) { note.loc = draftLoc; note.locStatus = 'ok'; }
+    else if (prefs.gps && navigator.geolocation) locateNote(note);
     notes.unshift(note);
     if (!saveNotes()) { notes.shift(); return; }
-    noteText.value = ''; noteTags.value = ''; draftPhotos = []; draftAudio = [];
+    noteText.value = ''; noteTags.value = ''; draftPhotos = []; draftAudio = []; draftLoc = null; renderDraftLoc();
     try { localStorage.removeItem(DRAFT); } catch {}
     syncSave(); renderDraftPhotos(); renderDraftAudio(); render();
     toast('Saved');
@@ -923,7 +964,7 @@
 
   function locNode(n) {
     if (n.loc) {
-      const a = el('a', 'loc', `📍 ${fmtCoord(n.loc)} ±${n.loc.acc} m`);
+      const a = el('a', 'loc', `📍 ${fmtCoord(n.loc)} ${n.loc.manual ? '(by hand)' : `±${n.loc.acc} m`}`);
       a.href = `https://maps.apple.com/?ll=${n.loc.lat},${n.loc.lon}&q=Fieldnote`;
       a.target = '_blank'; a.rel = 'noopener';
       return a;
@@ -1000,14 +1041,23 @@
   const renderEditAudio = () => memoList($('editAudio'), editAudio, id => {
     editAudio = editAudio.filter(x => x !== id); renderEditAudio();
   });
+  let editLoc = null;
+  function renderEditLoc() {
+    $('editLoc').textContent = editLoc ? `📍 ${fmtCoord(editLoc)} (${accLabel(editLoc)})` : 'No location';
+    $('editLocSet').textContent = editLoc ? 'Change' : 'Set location';
+    $('editLocClear').hidden = !editLoc;
+  }
+  $('editLocSet').addEventListener('click', () => { const l = askLocation(editLoc); if (l !== undefined) { editLoc = l; renderEditLoc(); } });
+  $('editLocClear').addEventListener('click', () => { editLoc = null; renderEditLoc(); });
   function openEdit(id) {
     const n = notes.find(x => x.id === id); if (!n) return;
     editingId = id; editPhotos = [...n.photos]; editAudio = [...n.audio]; editAdded = []; editSaved = false;
     const d = new Date(n.created);
-    $('editMeta').textContent = `${fmtDay(d)} · ${fmtTime(d)}` + (n.loc ? ` · ${fmtCoord(n.loc)}` : '');
+    $('editMeta').textContent = `${fmtDay(d)} · ${fmtTime(d)}`;
     $('editText').value = n.text;
     $('editTags').value = n.tags.join(', ');
     renderEditPhotos(); renderEditAudio();
+    editLoc = n.loc; renderEditLoc();
     $('editInat').textContent = n.inat ? 'View on iNaturalist ↗' : '🔎 Post to iNaturalist';
     editDlg.showModal();
   }
@@ -1033,6 +1083,7 @@
     if (!text && !editPhotos.length && !editAudio.length) { e.preventDefault(); toast('A note needs text, a photo or a memo — use Delete to remove it'); return; }
     const removed = [...n.photos.filter(id => !editPhotos.includes(id)), ...n.audio.filter(id => !editAudio.includes(id))];
     n.text = text; n.tags = parseTags($('editTags').value); n.photos = [...editPhotos]; n.audio = [...editAudio]; n.updated = new Date().toISOString();
+    if (editLoc !== n.loc) { n.loc = editLoc; n.locStatus = editLoc ? 'ok' : null; }
     editSaved = true;
     if (saveNotes()) forgetMedia(removed);
     render(); toast('Updated');
@@ -1101,7 +1152,7 @@
       for (const n of list) {
         const d = new Date(n.created);
         if (dayKey(d) !== day) { day = dayKey(d); out += `\n## ${d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n`; }
-        out += `\n### ${fmtTime(d)}` + (n.loc ? ` — ${fmtCoord(n.loc)} (±${n.loc.acc} m)` : '') + '\n\n';
+        out += `\n### ${fmtTime(d)}` + (n.loc ? ` — ${fmtCoord(n.loc)} (${accLabel(n.loc)})` : '') + '\n\n';
         if (n.text) out += n.text + '\n';
         pathsOf(n.photos, paths).forEach(p => { out += `\n![](${p.path})\n`; });
         pathsOf(n.audio, paths).forEach(p => { out += `\n[🎙 Voice memo (${fmtDur(p.dur)})](${p.path})\n`; });
@@ -1110,11 +1161,11 @@
       return { body: out, type: 'text/markdown', ext: 'md' };
     },
     csv(list, paths) {
-      const rows = [['id', 'date', 'time', 'latitude', 'longitude', 'accuracy_m', 'tags', 'photos', 'audio', 'text']];
+      const rows = [['id', 'date', 'time', 'latitude', 'longitude', 'accuracy_m', 'location_source', 'tags', 'photos', 'audio', 'text']];
       for (const n of list) {
         const d = new Date(n.created);
         rows.push([n.id, dayKey(d), `${pad(d.getHours())}:${pad(d.getMinutes())}`,
-          n.loc ? String(n.loc.lat) : '', n.loc ? String(n.loc.lon) : '', n.loc ? String(n.loc.acc) : '',
+          n.loc ? String(n.loc.lat) : '', n.loc ? String(n.loc.lon) : '', n.loc && n.loc.acc != null ? String(n.loc.acc) : '', n.loc ? (n.loc.manual ? 'manual' : 'gps') : '',
           n.tags.join('; '), pathsOf(n.photos, paths).map(p => p.path).join('; '),
           pathsOf(n.audio, paths).map(p => p.path).join('; '), n.text]);
       }
@@ -1125,7 +1176,7 @@
       const features = list.map(n => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [n.loc.lon, n.loc.lat] },
-        properties: { id: n.id, created: n.created, accuracy_m: n.loc.acc, tags: n.tags.join(', '),
+        properties: { id: n.id, created: n.created, accuracy_m: n.loc.acc, location_source: n.loc.manual ? 'manual' : 'gps', tags: n.tags.join(', '),
           photos: pathsOf(n.photos, paths).map(p => p.path).join(', '),
           audio: pathsOf(n.audio, paths).map(p => p.path).join(', '), text: n.text }
       }));
@@ -1534,7 +1585,7 @@
       const observation = {
         description: $('inatDesc').value.trim(), observed_on_string: n.created,
         ...(guess ? { species_guess: guess } : {}), ...(inatTaxon ? { taxon_id: inatTaxon.id } : {}),
-        ...(n.loc ? { latitude: n.loc.lat, longitude: n.loc.lon, positional_accuracy: n.loc.acc } : {}),
+        ...(n.loc ? { latitude: n.loc.lat, longitude: n.loc.lon, ...(n.loc.acc != null ? { positional_accuracy: n.loc.acc } : {}) } : {}),
         ...(n.tags.length ? { tag_list: n.tags.join(',') } : {}),
         ...($('inatObscure').checked ? { geoprivacy: 'obscured' } : {})
       };
@@ -1611,7 +1662,7 @@
   if (liveOn) setLive(true);
 
   // Version and what this phone allows, so problems can be diagnosed from a screenshot.
-  const APP_VERSION = 7;
+  const APP_VERSION = 8;
   async function renderDiag() {
     let loc = navigator.geolocation ? 'available' : 'missing';
     try { if (navigator.permissions) loc = (await navigator.permissions.query({ name: 'geolocation' })).state; } catch {}
