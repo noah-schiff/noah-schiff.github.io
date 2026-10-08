@@ -1,5 +1,6 @@
-// Offline support: serve the app shell from cache, refresh it in the background.
-const CACHE = 'fieldnotes-v1';
+// Offline support. Pages load from the network when possible so updates show up
+// right away, falling back to the cache offline; other files are cache-first.
+const CACHE = 'fieldnotes-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -20,9 +21,13 @@ self.addEventListener('fetch', e => {
     caches.open(CACHE).then(async cache => {
       const cached = await cache.match(e.request, { ignoreSearch: true });
       const network = fetch(e.request)
-        .then(res => { if (res.ok) cache.put(e.request, res.clone()); return res; })
-        .catch(() => cached);
-      return cached || network;
+        .then(res => { if (res.ok) cache.put(e.request, res.clone()); return res; });
+      network.catch(() => {});
+      if (e.request.mode === 'navigate') {
+        return Promise.race([network, new Promise((_, rej) => setTimeout(rej, 4000))])
+          .catch(() => cached || network);
+      }
+      return cached || network.catch(() => cached);
     })
   );
 });
