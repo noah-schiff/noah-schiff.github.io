@@ -243,6 +243,7 @@
 
   footer { text-align: center; color: var(--muted); font-size: .78rem; margin-top: 28px; }
   footer a { color: inherit; }
+  .diag { margin-top: 8px; font-size: .7rem; opacity: .8; }
 
   /* Dialogs */
   dialog {
@@ -342,7 +343,8 @@
 
   <main id="list"></main>
 
-  <footer>Notes are stored only on this device. Export a backup now and then.<br><a href="/">noahmschiff.com</a></footer>
+  <footer>Notes are stored only on this device. Export a backup now and then.<br><a href="/">noahmschiff.com</a>
+    <div class="diag mono" id="diag"></div></footer>
 </div>
 
 <dialog id="editDlg">
@@ -1607,6 +1609,16 @@
   $('installDismiss').addEventListener('click', () => { $('installBanner').hidden = true; prefs.hideInstall = true; store(PREFS, prefs); });
 
   if (liveOn) setLive(true);
+
+  // Version and what this phone allows, so problems can be diagnosed from a screenshot.
+  const APP_VERSION = 7;
+  async function renderDiag() {
+    let loc = navigator.geolocation ? 'available' : 'missing';
+    try { if (navigator.permissions) loc = (await navigator.permissions.query({ name: 'geolocation' })).state; } catch {}
+    const mode = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches ? 'home screen' : 'browser';
+    $('diag').textContent = `v${APP_VERSION} · ${mode} · mic ${hasMic ? '✓' : '✗'} · recorder ${hasMediaRecorder ? '✓' : AudioCtx ? 'wav' : '✗'} · location ${loc}`;
+  }
+  renderDiag();
 
   if ('serviceWorker' in navigator) {
     // When a new version installs, reload once so it shows up right away
